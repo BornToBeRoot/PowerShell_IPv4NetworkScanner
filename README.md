@@ -1,4 +1,4 @@
-# PowerShell-Async-IPScanner
+# PowerShell Async IPScanner
 
 ## Description
 Scan Network Async and return PSObject (IPv4Address, Hostname, FQDN, Status)
