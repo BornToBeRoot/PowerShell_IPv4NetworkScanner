@@ -15,6 +15,9 @@
     
     The first three quads of the IP-Range must be the same (like 192.168.1.XX - 192.168.1.XX).
     
+    .EXAMPLE
+    ScanNetworkAsync.ps1 -StartIP 192.168.1.1 -EndIP 192.168.1.200
+
     .LINK
     https://github.com/BornToBeRoot/PowerShell-Async-IPScanner
 #>
