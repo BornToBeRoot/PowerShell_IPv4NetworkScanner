@@ -1,9 +1,11 @@
 # PowerShell Async IPScanner
 
 ## Description
-Scan Network Async and return PSObject (IPv4Address, Hostname, FQDN, Status)
-
-Currently the first 3 quads of the IP-Address must be the same... you can only scan a range of /24.
+Network Scanner for PowerShell to scan IP-Range async
+    
+Returns an PowerShell Object with basic informations about the Network like IP, Hostname, FQDN and Status
+    
+The first three quads of the IP-Range must be the same (like 192.168.1.XX - 192.168.1.XX).
 
 ## Syntax
 ScanNetworkAsync.ps1 [-StartIP] $string [-EndIP] $string [[-MaxThreads] $int] [[-SleepTimer] $int]
