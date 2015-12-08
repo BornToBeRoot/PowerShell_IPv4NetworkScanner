@@ -120,7 +120,7 @@ Process{
 			    $FQDN = ([System.Net.Dns]::GetHostEntry($IPv4Address).HostName).ToUpper()                       	
 			    $Hostname = $FQDN.Split('.')[0]  						
 		    }
-		    catch { }
+		    catch { } # No DNS found
 				
 		    $Device = New-Object -TypeName PSObject
             Add-Member -InputObject $Device -MemberType NoteProperty -Name IPv4Address -Value $IPv4Address
