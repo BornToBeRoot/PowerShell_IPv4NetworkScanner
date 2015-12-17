@@ -6,14 +6,14 @@
 
 <#
     .SYNOPSIS
-    Returns an PowerShell Object with basic informations about the Network like IP, Hostname, FQDN and Status
+    Returns an PowerShell object with basic informations about the Network like IP, Hostname, FQDN and Status
 
     .DESCRIPTION
     Network Scanner for PowerShell to scan IP-Range async
     
-    Returns an PowerShell Object with basic informations about the Network like IP, Hostname, FQDN and Status
+    Returns an PowerShell object with basic informations about the network like IP, Hostname, FQDN and Status
     
-    The first three quads of the IP-Range must be the same (like 192.168.1.XX - 192.168.1.XX).
+    The first three quads of the IP-range must match (like 192.168.1.XX - 192.168.1.XX).
     
     .EXAMPLE
     ScanNetworkAsync.ps1 -StartIP 192.168.1.1 -EndIP 192.168.1.200
@@ -21,7 +21,6 @@
     .LINK
     https://github.com/BornToBeRoot/PowerShell-Async-IPScanner
 #>
-
 
 ##################################################################################################################
 ### Parameter and default values
@@ -32,14 +31,14 @@ param(
 	[Parameter(
 		Position=0,
 		Mandatory=$true,
-		HelpMessage='Start IP like 192.168.17.1')]
-	[String]$StartIP,
+		HelpMessage='Start IP like 192.168.2.1')]
+	[IPAddress]$StartIP,
 	
 	[Parameter(
 		Position=1,
 		Mandatory=$true,
-		HelpMessage='End IP like 192.168.17.199')]
-	[String]$EndIP,
+		HelpMessage='End IP like 192.168.2.199')]
+	[IPAddress]$EndIP,
 
 	[Parameter(
 		Position=2,
@@ -55,12 +54,30 @@ param(
 )
 
 ##################################################################################################################
-### Begin:  User Output (Information about Settings) & Validate IP-Range
+### Begin:  Validate IP-range, User output 
 ##################################################################################################################
 
 begin{
-    $StartTime = Get-Date
+	### Check if Start IP is greater than End IP
+    if(([IPAddress]$StartIP).Address -gt ([IPAddress]$EndIP).Address)
+    {
+        Write-Host 'No valid IP-Range. Parameter "-StartIP" must be lower than "-EndIP"' -ForegroundColor Red
+        exit
+    }
 
+    ### Variables for IP-Range Scan
+    $StartIP_ArrQuad = $StartIP.ToString().Split('.')   
+    $EndIP_ArrQuad =  $EndIP.ToString().Split('.')  
+    
+    if([String]::Format("{0}.{1}.{2}", $StartIP_ArrQuad[0], $StartIP_ArrQuad[1], $StartIP_ArrQuad[2]) -ne [String]::Format("{0}.{1}.{2}", $EndIP_ArrQuad[0], $EndIP_ArrQuad[1], $EndIP_ArrQuad[2]))
+    {
+        Write-Host "The first three quads must match! Max Subnet size is /24" -ForegroundColor Red
+        exit
+    }
+    	
+    $StartTime = Get-Date
+    
+	### Some User-Output...	
     Write-Host "`n----------------------------------------------------------------------------------------------------"
     Write-Host "----------------------------------------------------------------------------------------------------`n"
     Write-Host "Start:`tScript (Scan-Network) at $StartTime" -ForegroundColor Green
@@ -68,42 +85,24 @@ begin{
     Write-Host "Network Scan Settings (Range):`t`t$StartIP - $EndIP"
     Write-Host "Maximum threads at same time:`t`t$MaxThreads (Threads)"
     Write-Host "Wait time if all threads are busy:`t$SleepTimer (Milliseconds)"
-    Write-Host "`n----------------------------------------------------------------------------------------------------`n"
-
-    ### Variables for IP-Range Scan
-    $TmpStartIP = $StartIP.Split('.')
-    $TmpEndIP =  $EndIP.Split('.')
-
-    [String]$StartIP_FirstThree = [String]::Format("{0}.{1}.{2}", $TmpStartIP[0], $TmpStartIP[1], $TmpStartIP[2])
-    [String]$EndIP_FirstThree =  [String]::Format("{0}.{1}.{2}", $TmpEndIP[0], $TmpEndIP[1], $TmpEndIP[2])
-
-    $StartRange = $TmpStartIP[3]
-    $EndRange = $TmpEndIP[3]
-
-    if($StartIP_FirstThree -notlike $EndIP_FirstThree)
-    {
-	    Write-Host "The first three quads of the StartIP and EndIP don't match! Abort Script..." -ForegroundColor Red	
-	    return
-    }
-
-    $FirstThree = $StartIP_FirstThree
+    Write-Host "`n----------------------------------------------------------------------------------------------------`n"   
 }
 
 ##################################################################################################################
-### Process: Async IP-Scan (with resolveing DNS)
+### Process: Async IP-Scan (with resolving DNS)
 ##################################################################################################################
 
-Process{
+Process{ 
     Write-Host "Scanning IPs...`n" -ForegroundColor Yellow
 
-    foreach($Quad in $StartRange..$EndRange)
+    foreach($Quad in $StartIP_ArrQuad[3]..$EndIP_ArrQuad[3])
     {
         While ($(Get-Job -state running).count -ge $MaxThreads)
         {
             Start-Sleep -Milliseconds $SleepTimer
         }   
        
-        $IPv4Address = "$FirstThree.$Quad"
+        $IPv4Address = [String]::Format("{0}.{1}.{2}.{3}", $StartIP_ArrQuad[0], $StartIP_ArrQuad[1], $StartIP_ArrQuad[2], $Quad)
 
 	    Write-Host "Scanning IP (Async):`t$IPv4Address"
 
@@ -136,10 +135,10 @@ Process{
 
     Get-Job | Wait-Job | Out-Null
 
-    Write-Host "`nScanning finished!" -ForegroundColor Yellow
+    Write-Host "`nScan finished!" -ForegroundColor Yellow
 
 
-    ### Built Global Array, Wait for Jobs,  Remove Jobs
+    ### Built Global Array, wait for Jobs and remove them
     $Devices = New-Object System.Collections.ArrayList
    
     Get-Job | Receive-Job | % { $Devices.Add(($_ | Select-Object IPv4Address, Hostname, FQDN, Status))} | Out-Null
@@ -148,7 +147,7 @@ Process{
 }
 
 ##################################################################################################################
-### User Output
+### End: User output, return object
 ##################################################################################################################
 
 End {
@@ -157,19 +156,19 @@ End {
     $DevicesUnkown = @($Devices | Where-Object {($_.Status -eq "Down") -and ([String]::IsNullOrEmpty($_.FQDN))}).Count
 
     $EndTime = Get-Date
-    $ExecutionTime = (New-TimeSpan -Start $StartTime -End $EndTime).Seconds
+    $ExecutionTimeMinutes = (New-TimeSpan -Start $StartTime -End $EndTime).Minutes
+    $ExecutionTimeSeconds = (New-TimeSpan -Start $StartTime -End $EndTime).Seconds
 
     Write-Host "`n----------------------------------------------------------------------------------------------------`n"
     Write-Host "Devices Up:`t`t$DevicesUp" 
     Write-Host "Devices Down:`t`t$DevicesDown"
     Write-Host "Devices Unknown:`t$DevicesUnkown" 
     Write-Host "`n----------------------------------------------------------------------------------------------------`n"
-    Write-Host "Script duration:`t$ExecutionTime (Seconds)`n" -ForegroundColor Yellow
+    Write-Host "Script duration:`t$ExecutionTimeMinutes Minutes $ExecutionTimeSeconds Seconds`n" -ForegroundColor Yellow
     Write-Host "End:`tScript (Scan-Network) at $EndTime" -ForegroundColor Green
     Write-Host "`n----------------------------------------------------------------------------------------------------"
     Write-Host "----------------------------------------------------------------------------------------------------`n"
-
-    
+        
     ### Return Network Informations
     return $Devices
 }
