@@ -1,14 +1,32 @@
 # PowerShell Async IPScanner
 
+Async Network Scanner which returns a custom PowerShell object with basic informations about the scanned IP-Range include IP-Address, Hostname (with FQDN) and Status.
+
 ## Description
-Network Scanner for PowerShell to scan IP-Range async
+
+I built this powerful asynchronous IP-Scanner, because every script i found on the Internet was very slow. Most of them do there job, but ping every IP/Host in sequence and no one of them could ping more than /24. This is Ok if you have a few host, but if you want to scan a large IP-Range, you need a lot of hot coffee :)
+
+This Script can scan every IP-Range you want. To do this, just enter a Start IP and an End IP. This Script don't need a subnetmask (for example 172.16.1.47 to 172.16.2.5 would work).
+
+You can modify the threads at the same time, the wait time if all threads are busy and the tries for each IP in the parameter (use Get-Help for more details).
+  
+If all IPs are finished scanning, the script returns a custom PowerShell object which include IP-Address, Hostname (with FQDN) and the Status (Up or Down). You can easily process this PSObject in a foreach-loop like every other object in PowerShell.
     
-Returns an PowerShell Object with basic informations about the Network like IP, Hostname, FQDN and Status
-    
-The first three quads of the IP-Range must be the same (like 192.168.1.XX - 192.168.1.XX).
+If you found a bug or have some ideas to improve this script... Let me know. You find my Github profile in the links below.
+
+Last but not least: Have fun with it!
+
 
 ## Syntax
-ScanNetworkAsync.ps1 [-StartIP] $string [-EndIP] $string [[-MaxThreads] $int] [[-SleepTimer] $int]
+
+```powershell
+.\ScanNetworkAsync.ps1 [-StartIP] <IPAddress> [-EndIP] <IPAddress> [[-Threads] <Int32>] [[-Wait] <Int32>] [[-Tries] <Int32>] [<CommonParameters>]
+```
 
 ## Example
-ScanNetworkAsync.ps1 -StartIP 192.168.1.1 -EndIP 192.168.168.1.100 -MaxThreads 15 -SleepTimer 500
+
+```powershell
+ .\ScanNetworkAsync.ps1 -StartIP 192.168.1.1 -EndIP 192.168.1.200
+    
+ .\ScanNetworkAsync.ps1 -StartIP 172.16.0.1 -EndIP 172.16.1.254 -Threads 50 -Wait 250 -Tries 4
+ ```
