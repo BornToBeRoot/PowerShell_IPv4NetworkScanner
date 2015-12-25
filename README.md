@@ -20,7 +20,7 @@ Last but not least: Have fun with it!
 ## Syntax
 
 ```powershell
-ScanNetworkAsync.ps1 [-StartIPAddress] <IPAddress> [-EndIPAddress] <IPAddress> [[-Threads] <Int32>] [[-Wait] <Int32>] [[-Tries] <Int32>] [[-ActiveOnly]] [[-AlwaysDNS]] [<CommonParameters>]
+ScanNetworkAsync.ps1 [-StartIPAddress] <IPAddress> [-EndIPAddress] <IPAddress> [[-Threads] <Int32>] [[-Tries] <Int32>] [[-ActiveOnly]] [[-AlwaysDNS]] [<CommonParameters>]
 ```
 
 ## Example
@@ -31,14 +31,10 @@ Simple IP-Range Scan
 ```
 More threads, DNS from inaktiv devices
 ```powershell 
- .\ScanNetworkAsync.ps1 -StartIPAddress 172.16.0.1 -EndIPAddress 172.16.1.254 -Threads 50 -Wait 250 -Tries 4 -AlwaysDNS
+ .\ScanNetworkAsync.ps1 -StartIPAddress 172.16.0.1 -EndIPAddress 172.16.1.254 -Threads 50 -Tries 4 -AlwaysDNS
  ```
  
  Get only active devices
  ```powershell
  .\ScanNetworkAsync.ps1 -StartIPAddress 172.16.0.1 -EndIPAddress 172.16.1.254 -ActiveOnly
  ```
- 
-## ToDo
-
-- Improve perfomance
