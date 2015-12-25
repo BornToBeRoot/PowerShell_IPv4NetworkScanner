@@ -20,7 +20,7 @@ Last but not least: Have fun with it!
 ## Syntax
 
 ```powershell
-ScanNetworkAsync.ps1 [-StartIPAddress] <IPAddress> [-EndIPAddress] <IPAddress> [[-Threads] <Int32>] [[-Tries] <Int32>] [[-ActiveOnly]] [[-AlwaysDNS]] [<CommonParameters>]
+ScanNetworkAsync.ps1 [-StartIPAddress] <IPAddress> [-EndIPAddress] <IPAddress> [[-Threads] <Int32>] [[-Tries] <Int32>] [[-IncludeInactive]] [<CommonParameters>]
 ```
 
 ## Example
@@ -29,12 +29,25 @@ Simple IP-Range Scan
 ```powershell
  .\ScanNetworkAsync.ps1 -StartIPAddress 192.168.1.1 -EndIPAddress 192.168.1.200
 ```
-More threads, DNS from inaktiv devices
+
+Include inactive devices
 ```powershell 
- .\ScanNetworkAsync.ps1 -StartIPAddress 172.16.0.1 -EndIPAddress 172.16.1.254 -Threads 50 -Tries 4 -AlwaysDNS
+ .\ScanNetworkAsync.ps1 -StartIPAddress 172.16.0.1 -EndIPAddress 172.16.1.254 -Threads 50 -Tries 1 -IncludeInactive
  ```
- 
- Get only active devices
+
+ ## Output
+
  ```powershell
- .\ScanNetworkAsync.ps1 -StartIPAddress 172.16.0.1 -EndIPAddress 172.16.1.254 -ActiveOnly
+ $Results # Array includes IP, Hostame and Status
+
+
+
+ IPv4Address Hostname                           Status
+----------- --------                           ------
+172.16.0.1  FRITZ.BOX                          Up
+172.16.0.21 ANDROID-01.FRITZ.BOX               Up
+172.16.0.22 ANDROID-02.FRITZ.BOX               Up
+172.16.0.23 VM-2012R2-01.FRITZ.BOX             Up
+172.16.0.28 VPC-TEST-01.FRITZ.BOX              Up
+
  ```
