@@ -216,7 +216,7 @@ End {
     ### Some user-output
     Write-Host "`n----------------------------------------------------------------------------------------------------`n"
     Write-Host "Devices Up:`t`t$(@($Devices | Where-Object {($_.Status -eq "Up")}).Count)" 
-    Write-Host "Devices Down:`t$(@($Devices | Where-Object {($_.Status -eq "Down")}).Count)"
+    Write-Host "Devices Down:`t`t$(@($Devices | Where-Object {($_.Status -eq "Down")}).Count)"
     Write-Host "`n----------------------------------------------------------------------------------------------------`n"
     Write-Host "Script duration:`t$ExecutionTimeMinutes Minutes $ExecutionTimeSeconds Seconds`n" -ForegroundColor Yellow
     Write-Host "Script ($ScriptFileName) exit at $EndTime`n" -ForegroundColor Green
