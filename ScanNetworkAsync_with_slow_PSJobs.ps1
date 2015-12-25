@@ -31,7 +31,7 @@
     ScanNetworkAsync.ps1 -StartIPAddress 192.168.1.1 -EndIPAddress 192.168.1.200
     
     .EXAMPLE
-    ScanNetworkAsync.ps1 -StartIPAddress 172.16.0.1 -EndIPAddress 172.16.1.254 -Threads 50 -Tries 2 -ActiveOnly
+    ScanNetworkAsync.ps1 -StartIPAddress 172.16.0.1 -EndIPAddress 172.16.1.254 -Threads 50 -Wait 250 -Tries 4
 
     .LINK
     Github profile:     https://github.com/BornToBeRoot/PowerShell-Async-IPScanner
@@ -46,37 +46,43 @@ param(
 	[Parameter(
 		Position=0,
 		Mandatory=$true,
-		HelpMessage='Start IP-Address like 172.16.0.1')]
+		HelpMessage='Start IP like 172.16.0.1')]
 	[IPAddress]$StartIPAddress,
 	
 	[Parameter(
 		Position=1,
 		Mandatory=$true,
-		HelpMessage='End IP-Address like 172.16.1.254')]
+		HelpMessage='End IP like 172.16.1.254')]
 	[IPAddress]$EndIPAddress,
 
 	[Parameter(
 		Position=2,
 		Mandatory=$false,
-		HelpMessage='Maximum threads at the same time (Default 50)')]
-	[Int32]$Threads=50,
+		HelpMessage='Maximum threads at the same time (Default 20)')]
+	[Int32]$Threads=20,
 	
 	[Parameter(
 		Position=3,
 		Mandatory=$false,
-		HelpMessage='Maximum number of Test-Connection checks for each IP (Default 2)')]
+		HelpMessage='Wait time in Milliseconds if all threads are busy (Default 500)')]
+	[Int32]$Wait=500,
+
+	[Parameter(
+		Position=4,
+		Mandatory=$false,
+		HelpMessage='Maximum number of Test-Connection checks for each IP  (Default 2)')]
 	[Int32]$Tries=2,
 
     [Parameter(
-        Position=4,
+        Position=5,
         Mandatory=$false,
         HelpMessage='Show only active devices in result')]
     [switch]$ActiveOnly,
 
     [Parameter(
-        Position=5,
+        Position=6,
         Mandatory=$false,
-        HelpMessage='Resolve DNS for non-active devices (maybe some performance issues)')]
+        HelpMessage='Resolve DNS for non-active devices (some performance issues)')]
     [switch]$AlwaysDNS
 )
 
@@ -85,33 +91,29 @@ param(
 ##################################################################################################################
 
 begin{
-	### Start Time 
+	### Something maybe usefull :)
     $StartTime = Get-Date
-
-    ### Script FileName
     $ScriptFileName = $MyInvocation.MyCommand.Name      
       
     ###### # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
-    ### Function to convert IP to Int64 and vice versa 
-    ###
     ### You can find this two functions in the following script:      https://gallery.technet.microsoft.com/scriptcenter/List-the-IP-addresses-in-a-60c5bb6b#content 
     ### Published under the MS-LPL license you can fin here:          https://www.openhub.net/licenses/mslpl
-    function IPtoInt64 () { 
+    function IP-toInt64 () { 
         param ($IPAddr) 
  
         $Octets = $IPAddr.split(".") 
         return [long]([long]$Octets[0]*16777216 +[long]$Octets[1]*65536 +[long]$Octets[2]*256 +[long]$Octets[3]) 
     } 
     
-    function Int64toIP() { 
+    function Int64-toIP() { 
         param ([long]$Int) 
 
         return (([System.Math]::Truncate($Int/16777216)).ToString() + "." + ([System.Math]::Truncate(($Int%16777216)/65536)).tostring() + "." + ([System.Math]::Truncate(($int%65536)/256)).ToString() + "." + ([System.Math]::Truncate($int%256)).ToString())
     }
     ###### # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
-    $StartIPAddress_Int64 = IPtoInt64 -IPAddr $StartIPAddress.ToString()
-    $EndIPAddress_Int64 = IPtoInt64 -IPAddr $EndIPAddress.ToString()
+    $StartIPAddress_Int64 = IP-toInt64 -IPAddr $StartIPAddress.ToString()
+    $EndIPAddress_Int64 = IP-toInt64 -IPAddr $EndIPAddress.ToString()
     $IPRange_Int64 = ($EndIPAddress_Int64 - $StartIPAddress_Int64)
 
     ### Check if Start IP is greater than End IP
@@ -122,10 +124,11 @@ begin{
     }
 
 	### Some user-output...	
-    Write-Host "`nScript ($ScriptFileName) started at $StartTime" -ForegroundColor Green
+    Write-Host "Script ($ScriptFileName) started at $StartTime" -ForegroundColor Green
     Write-Host "`n----------------------------------------------------------------------------------------------------`n"
     Write-Host "IP-Range:`t`t$StartIPAddress - $EndIPAddress"
     Write-Host "Threads:`t`t$Threads"
+    Write-Host "Wait:`t`t`t$Wait (Milliseconds)"
     Write-Host "Tries:`t`t`t$Tries"
     Write-Host "`n----------------------------------------------------------------------------------------------------`n"      
 }
@@ -135,97 +138,103 @@ begin{
 ##################################################################################################################
 
 Process{ 
-    ### Scriptblock that will run in runspaces (threads)...
-    [System.Management.Automation.ScriptBlock]$ScriptBlock = {
-        ### Parameters
-        $IPv4Address = $args[0]
-        $Tries = $args[1]
-               
-        ### Test if device is available
-        if(Test-Connection -ComputerName $IPv4Address -Count $Tries -Quiet) { $Status = "Up" } else { $Status = "Down" }		
-		  
-        $Hostname = [String]::Empty 
-
-        ### Resolve DNS
-        if($Status -eq "Up" -or $AlwaysDNS)
-        {   	
-		    try { $Hostname = ([System.Net.Dns]::GetHostEntry($IPv4Address).HostName).ToUpper() }
-            catch { } # No DNS found
-      	} 
-
-        ### Built custom PSObject
-		$Result = New-Object -TypeName PSObject
-        Add-Member -InputObject $Result -MemberType NoteProperty -Name IPv4Address -Value $IPv4Address
-        Add-Member -InputObject $Result -MemberType NoteProperty -Name Hostname -Value $Hostname            
-		Add-Member -InputObject $Result -MemberType NoteProperty -Name Status -Value $Status
-		
-        return $Result      
-    }            
-        
-    ### Setting up runspaces
-    $RunspacePool = [System.Management.Automation.Runspaces.RunspaceFactory]::CreateRunspacePool(1,$Threads, $Host)
-    $RunspacePool.Open()
-    $Jobs = @()
-
-    Write-Host "`nStart scanning IPs..." -ForegroundColor Yellow
-
-    ### Setting up jobs
+    Write-Host "Scanning IPs...`n" -ForegroundColor Yellow
+      
     for ($i = $StartIPAddress_Int64; $i -le $EndIPAddress_Int64; $i++) 
     { 
-        $IPv4Address = Int64toIP -Int $i
+        While ($(Get-Job -state running).count -ge $Threads)
+        {
+            Start-Sleep -Milliseconds $Wait
+        }   
+              
+        $IPv4Address = Int64-toIP -Int $i 
 
-        Write-Progress -Activity "Setting up jobs..." -Id 1 -Status "Current IP-Address: $IPv4Address" -PercentComplete ((($i - $StartIPAddress_Int64) / $IPRange_Int64) * 100)
-                      
-        $Job = [System.Management.Automation.PowerShell]::Create().AddScript($ScriptBlock).AddArgument($IPv4Address).AddArgument($Tries)
-        $Job.RunspacePool = $RunspacePool
-        $Jobs += New-Object PSObject -Property @{
-            RunNum = $i - $StartIPAddress_Int64
-            Pipe = $Job
-            Result = $Job.BeginInvoke()
+        Write-Progress -Activity "Scanning IP.." -Id 1 -status $IPv4Address -PercentComplete ((($i - $StartIPAddress_Int64) / $IPRange_Int64) * 100)
+                
+        $ScriptBlockCode = { 
+
+            $IPv4Address = $args[0]
+            $Tries = $args[1]
+                
+            if(Test-Connection -ComputerName $IPv4Address -Count $Tries -Quiet) { $Status = "Up" } else { $Status = "Down" }		
+		    
+            if($Status -eq "Up" -or $AlwaysDNS)
+            {
+                $FQDN = [String]::Empty
+		        $Hostname = [String]::Empty
+		
+		        try {
+		            $Hostname = ([System.Net.Dns]::GetHostEntry($IPv4Address).HostName).ToUpper()                       			        
+	            }
+		        catch { } # No DNS found
+        	} 
+
+		    $Device = New-Object -TypeName PSObject
+            Add-Member -InputObject $Device -MemberType NoteProperty -Name IPv4Address -Value $IPv4Address
+            Add-Member -InputObject $Device -MemberType NoteProperty -Name Hostname -Value $Hostname            
+		    Add-Member -InputObject $Device -MemberType NoteProperty -Name Status -Value $Status
+		
+            return $Device      
         }
+
+        Start-Job -ArgumentList $IPv4Address, $Tries -ScriptBlock $ScriptBlockCode | Out-Null          
+
+        $RunningThreads = (Get-Job -State Running).Count
+
+        Write-Progress -Activity "Running threads.." -Id 2 -ParentId 1 -Status "$RunningThreads of $Threads" -PercentComplete (($RunningThreads / $Threads)  * 100)
     }
         
-    ### Wait until all Jobs are finished
-    Do {
-        Start-Sleep -Milliseconds 500
-              
-        Write-Progress -Activity "Waiting for jobs ($($Threads - $($RunspacePool.GetAvailableRunspaces())) of $Threads threads running)" -Id 1 -PercentComplete (($Jobs.count - $($($Jobs | Where-Object {$_.Result.IsCompleted -eq $false}).Count)) / $Jobs.Count * 100) -Status "$(@($($Jobs | Where-Object {$_.Result.IsCompleted -eq $false})).Count) remaining..."
-                                
-    } While ($Jobs.Result.IsCompleted -contains $false)
-            
+    Write-Progress -Activity "Scan finished" -Id 1 -status $EndIPAddress -PercentComplete (100)
+
+    ### Wait until jobs are finished, but still display progress
+    while(Get-Job -State Running)
+    {
+       $RunningThreads = (Get-Job -State Running).Count
+
+       Write-Progress -Activity "Waiting for threads.." -Id 2 -ParentId 1 -Status "$RunningThreads of $Threads Threads" -PercentComplete (($RunningThreads / $Threads)  * 100)
+
+       Start-Sleep -Milliseconds $Wait 
+    }
     
     Write-Host "`nScan finished!" -ForegroundColor Yellow
     
-    ### Built global array
-    $Results = @()
+    ### Built global array, wait for jobs and remove them
+    $Devices = New-Object System.Collections.ArrayList
    
-    ### Get Results and fill the array
-    foreach ($Job in $Jobs)
-    {
-        $Results += $Job.Pipe.EndInvoke($Job.Result)
-    }        
+    Get-Job | Receive-Job | % { $Devices.Add(($_ | Select-Object IPv4Address, Hostname, Status))} | Out-Null
+   
+    Get-Job | Remove-Job | Out-Null
 }
 
 ##################################################################################################################
 ### End: user output, return custom psobject
 ##################################################################################################################
 
-End {  
-    ### End Time 
-    $EndTime = Get-Date
+End {
+    $DevicesUp = @($Devices | Where-Object {($_.Status -eq "Up")}).Count
+    $DevicesDown = @($Devices | Where-Object {($_.Status -eq "Down") -and (-not([String]::IsNullOrEmpty($_.Hostname)))}).Count
+    $DevicesUnkown = @($Devices | Where-Object {($_.Status -eq "Down") -and ([String]::IsNullOrEmpty($_.Hostname))}).Count
 
-    ### Calculate the time between Start and End
+    $EndTime = Get-Date
     $ExecutionTimeMinutes = (New-TimeSpan -Start $StartTime -End $EndTime).Minutes
     $ExecutionTimeSeconds = (New-TimeSpan -Start $StartTime -End $EndTime).Seconds
-        
-    ### Some user-output
+
     Write-Host "`n----------------------------------------------------------------------------------------------------`n"
-    Write-Host "Devices Up:`t`t$(@($Devices | Where-Object {($_.Status -eq "Up")}).Count)" 
-    Write-Host "Devices Down:`t$(@($Devices | Where-Object {($_.Status -eq "Down")}).Count)"
+    Write-Host "Devices Up:`t`t$DevicesUp" 
+    Write-Host "Devices Down:`t`t$DevicesDown"
+    Write-Host "Devices Unknown:`t$DevicesUnkown" 
     Write-Host "`n----------------------------------------------------------------------------------------------------`n"
     Write-Host "Script duration:`t$ExecutionTimeMinutes Minutes $ExecutionTimeSeconds Seconds`n" -ForegroundColor Yellow
-    Write-Host "Script ($ScriptFileName) exit at $EndTime`n" -ForegroundColor Green
+    Write-Host "Script ($ScriptFileName) exit at $EndTime" -ForegroundColor Green
             
     ### return custom psobject with network informations
-    if($ActiveOnly) { return $Results | Where-Object {$_.Status -eq "Up"} } else { return $Results }
+
+    if($ActiveOnly)
+    {
+        return $Devices | Where-Object {$_.Status -eq "Up"}
+    }
+    else
+    {
+        return $Devices
+    }
 }
