@@ -58,8 +58,8 @@ param(
 	[Parameter(
 		Position=2,
 		Mandatory=$false,
-		HelpMessage='Maximum threads at the same time (Default 50)')]
-	[Int32]$Threads=50,
+		HelpMessage='Maximum threads at the same time (Default 256)')]
+	[Int32]$Threads=256,
 	
 	[Parameter(
 		Position=3,
@@ -70,14 +70,8 @@ param(
     [Parameter(
         Position=4,
         Mandatory=$false,
-        HelpMessage='Show only active devices in result')]
-    [switch]$ActiveOnly,
-
-    [Parameter(
-        Position=5,
-        Mandatory=$false,
-        HelpMessage='Resolve DNS for non-active devices (maybe some performance issues)')]
-    [switch]$AlwaysDNS
+        HelpMessage='Show inactive devices in result')]
+    [switch]$IncludeInactive      
 )
 
 ##################################################################################################################
@@ -140,6 +134,7 @@ Process{
         ### Parameters
         $IPv4Address = $args[0]
         $Tries = $args[1]
+        $IncludeInactive = $args[2]
                
         ### Test if device is available
         if(Test-Connection -ComputerName $IPv4Address -Count $Tries -Quiet) { $Status = "Up" } else { $Status = "Down" }		
@@ -147,7 +142,7 @@ Process{
         $Hostname = [String]::Empty 
 
         ### Resolve DNS
-        if($Status -eq "Up" -or $AlwaysDNS)
+        if($Status -eq "Up" -or $IncludeInactive)
         {   	
 		    try { $Hostname = ([System.Net.Dns]::GetHostEntry($IPv4Address).HostName).ToUpper() }
             catch { } # No DNS found
@@ -167,7 +162,7 @@ Process{
     $RunspacePool.Open()
     $Jobs = @()
 
-    Write-Host "`nStart scanning IPs..." -ForegroundColor Yellow
+    Write-Host "`nScanning IPs..." -ForegroundColor Yellow
 
     ### Setting up jobs
     for ($i = $StartIPAddress_Int64; $i -le $EndIPAddress_Int64; $i++) 
@@ -176,7 +171,7 @@ Process{
 
         Write-Progress -Activity "Setting up jobs..." -Id 1 -Status "Current IP-Address: $IPv4Address" -PercentComplete ((($i - $StartIPAddress_Int64) / $IPRange_Int64) * 100)
                       
-        $Job = [System.Management.Automation.PowerShell]::Create().AddScript($ScriptBlock).AddArgument($IPv4Address).AddArgument($Tries)
+        $Job = [System.Management.Automation.PowerShell]::Create().AddScript($ScriptBlock).AddArgument($IPv4Address).AddArgument($Tries).AddArgument($IncludeInactive)
         $Job.RunspacePool = $RunspacePool
         $Jobs += New-Object PSObject -Property @{
             RunNum = $i - $StartIPAddress_Int64
@@ -227,5 +222,5 @@ End {
     Write-Host "Script ($ScriptFileName) exit at $EndTime`n" -ForegroundColor Green
             
     ### return custom psobject with network informations
-    if($ActiveOnly) { return $Results | Where-Object {$_.Status -eq "Up"} } else { return $Results }
+    if($IncludeInactive) { return $Results } else { return $Results | Where-Object {$_.Status -eq "Up"} } 
 }
