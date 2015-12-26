@@ -35,7 +35,7 @@ Include inactive devices
  .\ScanNetworkAsync.ps1 -StartIPAddress 172.16.0.1 -EndIPAddress 172.16.1.254 -Threads 50 -Tries 1 -IncludeInactive
  ```
 
- ## Output
+## Output
 
  ```powershell
  $Results # Array includes IP, Hostame and Status
