@@ -40,8 +40,6 @@ Include inactive devices
  ```powershell
  $Results # Array includes IP, Hostame and Status
 
-
-
  IPv4Address Hostname                           Status
 ----------- --------                           ------
 172.16.0.1  FRITZ.BOX                          Up
