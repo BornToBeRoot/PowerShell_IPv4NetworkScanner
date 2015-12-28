@@ -36,9 +36,8 @@ Include inactive devices
 ```
 
 ## Output
-
  ```powershell
- $Results # Array includes IP, Hostame and Status
+ $Results
 
  IPv4Address Hostname                           Status
 ----------- --------                           ------
