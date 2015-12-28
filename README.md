@@ -4,7 +4,7 @@ Async Network Scanner which returns a custom PowerShell object with basic inform
 
 ## Description
 
-I built this powerful asynchronous IP-Scanner, because every script i found on the Internet was very slow. Most of them do there job, but ping every IP/Host in sequence and no one of them could ping more than /24. This is Ok if you have a few host, but if you want to scan a large IP-Range, you need a lot of hot coffee :)
+I built this powerful asynchronous IP-Scanner, because every script i found on the Internet was very slow. Most of them do there job, but ping every IP/Host in sequence and/or no one of them could ping more than /24. This is Ok if you have a few host, but if you want to scan a large IP-Range, you need a lot of coffee :)
 
 This Script can scan every IP-Range you want. To do this, just enter a Start IP and an End IP. This Script don't need a subnetmask (for example 172.16.1.47 to 172.16.2.5 would work).
 
