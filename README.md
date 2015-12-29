@@ -4,18 +4,15 @@ Async Network Scanner which returns a custom PowerShell object with basic inform
 
 ## Description
 
-I built this powerful asynchronous IP-Scanner, because every script i found on the Internet was very slow. Most of them do there job, but ping every IP/Host in sequence and/or no one of them could ping more than /24. This is Ok if you have a few host, but if you want to scan a large IP-Range, you need a lot of coffee :)
+I built this powerful asynchronous IP-Scanner, because every script i found on the Internet was very slow. Most of them do there job, but ping every IP/Host in sequence and/or no one could ping more than /24. This is Ok if you have a few host, but if you want to scan a large IP-Range, you need a lot of coffee :)
 
-This Script can scan every IP-Range you want. To do this, just enter a Start IP and an End IP. This Script don't need a subnetmask (for example 172.16.1.47 to 172.16.2.5 would work).
+This Script can scan every IP-Range you want. To do this, just enter a Start IP-Address and an End IP-Address. You don't need a specific subnetmask (for example 172.16.1.47 to 172.16.2.5 would work).
 
 You can modify the threads at the same time, the wait time if all threads are busy and the tries for each IP in the parameter (use Get-Help for more details).
   
 If all IPs are finished scanning, the script returns a custom PowerShell object which include IP-Address, Hostname (with FQDN) and the Status (Up or Down). You can easily process this PSObject in a foreach-loop like every other object in PowerShell.
     
 If you found a bug or have some ideas to improve this script... Let me know. You find my Github profile in the links below.
-
-Last but not least: Have fun with it!
-
 
 ## Syntax
 
@@ -36,10 +33,11 @@ Include inactive devices
 ```
 
 ## Output
+
  ```powershell
  $Results
 
- IPv4Address Hostname                           Status
+IPv4Address Hostname                           Status
 ----------- --------                           ------
 172.16.0.1  FRITZ.BOX                          Up
 172.16.0.21 ANDROID-01.FRITZ.BOX               Up

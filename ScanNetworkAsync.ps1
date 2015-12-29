@@ -1,19 +1,23 @@
-##################################################################################################################
-### Help
-##################################################################################################################
+###############################################################################################################
+# Language     :  PowerShell 4.0
+# Script Name  :  ScanNetworkAsync.ps1
+# Autor        :  BornToBeRoot (https://github.com/BornToBeRoot)
+# Description  :  Asynchronus Network Scanner
+# Repository   :  https://github.com/BornToBeRoot/PowerShell-Async-IPScanner
+###############################################################################################################
 
 <#
     .SYNOPSIS
-    Async Network Scanner which returns a custom PowerShell object with basic informations about the scanned 
-    IP-Range include IP-Address, Hostname (with FQDN) and Status.
+    Asynchronous Network Scanner which returns a custom PowerShell object with basic informations about the 
+    scanned IP-Range include IP-Address, Hostname (with FQDN) and Status.
 
     .DESCRIPTION
     I built this powerful asynchronous IP-Scanner, because every script i found on the Internet was very slow. 
-    Most of them do there job, but ping every IP/Host in sequence and no one of them could ping more than /24. 
+    Most of them do there job, but ping every IP/Host in sequence and/or no one could ping more than /24. 
     This is Ok if you have a few host, but if you want to scan a large IP-Range, you need a lot of hot coffee :)
 
-    This Script can scan every IP-Range you want. To do this, just enter a Start IP and an End IP. This Script 
-    don't need a subnetmask (for example 172.16.1.47 to 172.16.2.5 would work).
+    This Script can scan every IP-Range you want. To do this, just enter a Start IP-Address and an End IP-Address.
+    You don't need a specific subnetmask (for example 172.16.1.47 to 172.16.2.5 would work).
     
     You can modify the threads at the same time, the wait time if all threads are busy and the tries for each 
     IP in the parameter (use Get-Help for more details).
@@ -24,8 +28,6 @@
     
     If you found a bug or have some ideas to improve this script... Let me know. You find my Github profile in 
     the links below.
-
-    Last but not least: Have fun with it!
                 
     .EXAMPLE
     ScanNetworkAsync.ps1 -StartIPAddress 192.168.1.1 -EndIPAddress 192.168.1.200
@@ -34,12 +36,9 @@
     ScanNetworkAsync.ps1 -StartIPAddress 172.16.0.1 -EndIPAddress 172.16.1.254 -Threads 50 -Tries 2 -ActiveOnly
 
     .LINK
-    Github profile:     https://github.com/BornToBeRoot/PowerShell-Async-IPScanner
+    Github Profil:         https://github.com/BornToBeRoot
+    Github Repository:     https://github.com/BornToBeRoot/PowerShell-Async-IPScanner
 #>
-
-##################################################################################################################
-### Parameter and default values
-##################################################################################################################
 
 [CmdletBinding()]
 param(
@@ -74,22 +73,18 @@ param(
     [switch]$IncludeInactive      
 )
 
-##################################################################################################################
-### Begin:  Validate IP-range, include functions
-##################################################################################################################
-
 begin{
-	### Start Time 
+	# Time when the script starts
     $StartTime = Get-Date
 
-    ### Script FileName
+    # Script FileName
     $ScriptFileName = $MyInvocation.MyCommand.Name      
-      
-    ###### # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
-    ### Function to convert IP to Int64 and vice versa 
-    ###
-    ### You can find this two functions in the following script:      https://gallery.technet.microsoft.com/scriptcenter/List-the-IP-addresses-in-a-60c5bb6b#content 
-    ### Published under the MS-LPL license you can fin here:          https://www.openhub.net/licenses/mslpl
+        
+    ### - - - Include functions - - - ###
+    # Function to convert IPv4-Address from and to Int64
+    
+    # You can find this two functions in the following script:      https://gallery.technet.microsoft.com/scriptcenter/List-the-IP-addresses-in-a-60c5bb6b#content 
+    # Published under the MS-LPL license you can fin here:          https://www.openhub.net/licenses/mslpl
     function IPtoInt64 () { 
         param ($IPAddr) 
  
@@ -102,20 +97,20 @@ begin{
 
         return (([System.Math]::Truncate($Int/16777216)).ToString() + "." + ([System.Math]::Truncate(($Int%16777216)/65536)).tostring() + "." + ([System.Math]::Truncate(($int%65536)/256)).ToString() + "." + ([System.Math]::Truncate($int%256)).ToString())
     }
-    ###### # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+    ### - - - - - - - - - - - - - - - ###
 
     $StartIPAddress_Int64 = IPtoInt64 -IPAddr $StartIPAddress.ToString()
     $EndIPAddress_Int64 = IPtoInt64 -IPAddr $EndIPAddress.ToString()
     $IPRange_Int64 = ($EndIPAddress_Int64 - $StartIPAddress_Int64)
 
-    ### Check if Start IP is greater than End IP
+    # Check if Start IP is greater than End IP
     if($StartIPAddress_Int64 -gt $EndIPAddress_Int64)
     {
         Write-Host "Check your input! Invalid IP-range... (-EndIPAddress can't be lower than -StartIPAddress)" -ForegroundColor Red
         exit
     }
 
-	### Some user-output...	
+	# Some user-output about the selected or default settings	
     Write-Host "`nScript ($ScriptFileName) started at $StartTime" -ForegroundColor Green
     Write-Host "`n----------------------------------------------------------------------------------------------------`n"
     Write-Host "IP-Range:`t`t$StartIPAddress - $EndIPAddress"
@@ -124,29 +119,25 @@ begin{
     Write-Host "`n----------------------------------------------------------------------------------------------------`n"      
 }
 
-##################################################################################################################
-### Process: Async IP-Scan (with resolving DNS)
-##################################################################################################################
-
 Process{ 
-    ### Scriptblock that will run in runspaces (threads)...
+    # Scriptblock that will run in runspaces (threads)...
     [System.Management.Automation.ScriptBlock]$ScriptBlock = {
         ### Parameters
         $IPv4Address = $args[0]
         $Tries = $args[1]
         $IncludeInactive = $args[2]
                
-        ### Test if device is available
+        # Test if device is available
         if(Test-Connection -ComputerName $IPv4Address -Count $Tries -Quiet) { $Status = "Up" } else { $Status = "Down" }		
 		  
         $Hostname = [String]::Empty 
 
-        ### Resolve DNS
+        # Resolve DNS
         if($Status -eq "Up" -or $IncludeInactive)
         {   	
 		    try { $Hostname = ([System.Net.Dns]::GetHostEntry($IPv4Address).HostName).ToUpper() }
-            catch { } # No DNS found
-      	} 
+            catch { } # No DNS found                        
+      	}
 
         ### Built custom PSObject
 		$Result = New-Object -TypeName PSObject
@@ -157,14 +148,14 @@ Process{
         return $Result      
     }            
         
-    ### Setting up runspaces
+    # Setting up runspaces
     $RunspacePool = [System.Management.Automation.Runspaces.RunspaceFactory]::CreateRunspacePool(1,$Threads, $Host)
     $RunspacePool.Open()
     $Jobs = @()
 
     Write-Host "`nScanning IPs..." -ForegroundColor Yellow
 
-    ### Setting up jobs
+    # Setting up jobs
     for ($i = $StartIPAddress_Int64; $i -le $EndIPAddress_Int64; $i++) 
     { 
         $IPv4Address = Int64toIP -Int $i
@@ -180,40 +171,35 @@ Process{
         }
     }
         
-    ### Wait until all Jobs are finished
+    # Wait until all Jobs are finished
     Do {
         Start-Sleep -Milliseconds 500
               
         Write-Progress -Activity "Waiting for jobs ($($Threads - $($RunspacePool.GetAvailableRunspaces())) of $Threads threads running)" -Id 1 -PercentComplete (($Jobs.count - $($($Jobs | Where-Object {$_.Result.IsCompleted -eq $false}).Count)) / $Jobs.Count * 100) -Status "$(@($($Jobs | Where-Object {$_.Result.IsCompleted -eq $false})).Count) remaining..."
                                 
     } While ($Jobs.Result.IsCompleted -contains $false)
-            
     
-    Write-Host "`nScan finished!" -ForegroundColor Yellow
-    
-    ### Built global array
+    # Built global array
     $Results = @()
    
-    ### Get Results and fill the array
+    # Get results and fill the array
     foreach ($Job in $Jobs)
     {
         $Results += $Job.Pipe.EndInvoke($Job.Result)
-    }        
+    }
+    
+    Write-Host "`nScan finished!" -ForegroundColor Yellow        
 }
 
-##################################################################################################################
-### End: user output, return custom psobject
-##################################################################################################################
-
 End {  
-    ### End Time 
+    # Time when the Script finished
     $EndTime = Get-Date
 
-    ### Calculate the time between Start and End
+    # Calculate the time between Start and End
     $ExecutionTimeMinutes = (New-TimeSpan -Start $StartTime -End $EndTime).Minutes
     $ExecutionTimeSeconds = (New-TimeSpan -Start $StartTime -End $EndTime).Seconds
         
-    ### Some user-output
+    # Some User-Output with Device UP/Down and execution time
     Write-Host "`n----------------------------------------------------------------------------------------------------`n"
     Write-Host "Devices Up:`t`t$(@($Results | Where-Object {($_.Status -eq "Up")}).Count)" 
     Write-Host "Devices Down:`t`t$(@($Results | Where-Object {($_.Status -eq "Down")}).Count)"
@@ -221,6 +207,6 @@ End {
     Write-Host "Script duration:`t$ExecutionTimeMinutes Minutes $ExecutionTimeSeconds Seconds`n" -ForegroundColor Yellow
     Write-Host "Script ($ScriptFileName) exit at $EndTime`n" -ForegroundColor Green
             
-    ### return custom psobject with network informations
+    # Return custom psobject with network informations
     if($IncludeInactive) { return $Results } else { return $Results | Where-Object {$_.Status -eq "Up"} } 
 }
