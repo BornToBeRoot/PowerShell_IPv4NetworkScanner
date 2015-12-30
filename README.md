@@ -1,6 +1,6 @@
 # PowerShell Async IPScanner
 
-Async Network Scanner which returns a custom PowerShell object with basic informations about the scanned IP-Range include IP-Address, Hostname (with FQDN) and Status.
+Asynchronous Network Scanner which returns a custom PowerShell object with basic informations about the scanned IP-Range include IP-Address, Hostname (with FQDN) and Status.
 
 ## Description
 
