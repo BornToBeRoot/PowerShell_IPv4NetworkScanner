@@ -2,13 +2,13 @@
 # Language     :  PowerShell 4.0
 # Script Name  :  ScanNetworkAsync.ps1
 # Autor        :  BornToBeRoot (https://github.com/BornToBeRoot)
-# Description  :  Asynchronus Network Scanner
+# Description  :  Asynchronus IP-Scanner
 # Repository   :  https://github.com/BornToBeRoot/PowerShell-Async-IPScanner
 ###############################################################################################################
 
 <#
     .SYNOPSIS
-    Asynchronous Network Scanner which returns a custom PowerShell object with basic informations about the 
+    Asynchronous IP-Scanner which returns a custom PowerShell object with basic informations about the 
     scanned IP-Range include IP-Address, Hostname (with FQDN) and Status.
 
     .DESCRIPTION
