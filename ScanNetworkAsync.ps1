@@ -45,25 +45,25 @@ param(
 	[Parameter(
 		Position=0,
 		Mandatory=$true,
-		HelpMessage='Start IP-Address like 172.16.0.1')]
+		HelpMessage='Enter the Start IP-Address (like 172.16.0.1)')]
 	[IPAddress]$StartIPAddress,
 	
 	[Parameter(
 		Position=1,
 		Mandatory=$true,
-		HelpMessage='End IP-Address like 172.16.1.254')]
+		HelpMessage='Enter the End IP-Address like 172.16.1.254')]
 	[IPAddress]$EndIPAddress,
 
 	[Parameter(
 		Position=2,
 		Mandatory=$false,
-		HelpMessage='Maximum threads at the same time (Default 256)')]
+		HelpMessage='Set the maximum number of threads at the same time (Default 256)')]
 	[Int32]$Threads=256,
 	
 	[Parameter(
 		Position=3,
 		Mandatory=$false,
-		HelpMessage='Maximum number of Test-Connection checks for each IP (Default 2)')]
+		HelpMessage='Set the maximum number of Test-Connection checks for each IP (Default 2)')]
 	[Int32]$Tries=2,
 
     [Parameter(
