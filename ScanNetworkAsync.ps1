@@ -41,7 +41,7 @@
 #>
 
 [CmdletBinding()]
-param(
+Param(
 	[Parameter(
 		Position=0,
 		Mandatory=$true,
@@ -73,7 +73,7 @@ param(
     [switch]$IncludeInactive      
 )
 
-begin{
+Begin{
 	# Time when the script starts
     $StartTime = Get-Date
 
@@ -110,17 +110,17 @@ begin{
         exit
     }
 
-	# Some user-output about the selected or default settings	
+	# Some User-Output about the selected or default settings	
     Write-Host "`nScript ($ScriptFileName) started at $StartTime" -ForegroundColor Green
-    Write-Host "`n----------------------------------------------------------------------------------------------------`n"
-    Write-Host "IP-Range:`t`t$StartIPAddress - $EndIPAddress"
-    Write-Host "Threads:`t`t$Threads"
-    Write-Host "Tries:`t`t`t$Tries"
-    Write-Host "`n----------------------------------------------------------------------------------------------------`n"      
+    Write-Host "`n+---------------------------------------Settings----------------------------------------`n|"
+    Write-Host "|  IP-Range:`t`t$StartIPAddress - $EndIPAddress"
+    Write-Host "|  Threads:`t`t$Threads"
+    Write-Host "|  Tries:`t`t$Tries"
+    Write-Host "|`n+---------------------------------------------------------------------------------------`n"      
 }
 
 Process{ 
-    # Scriptblock that will run in runspaces (threads)...
+	# Scriptblock that will run in runspaces (threads)...
     [System.Management.Automation.ScriptBlock]$ScriptBlock = {
         ### Parameters
         $IPv4Address = $args[0]
@@ -148,20 +148,21 @@ Process{
         return $Result      
     }            
         
-    # Setting up runspaces
+	# Setting up runspaces
+	Write-Host "Setting up runspace pool...`t`t" -ForegroundColor Yellow -NoNewline
     $RunspacePool = [System.Management.Automation.Runspaces.RunspaceFactory]::CreateRunspacePool(1,$Threads, $Host)
     $RunspacePool.Open()
     $Jobs = @()
-
-    Write-Host "`nScanning IPs..." -ForegroundColor Yellow
-
+	Write-Host "[" -ForegroundColor Gray -NoNewline; Write-Host "Done" -ForegroundColor Green -NoNewline; Write-Host "]" -ForegroundColor Gray	
+	
     # Setting up jobs
+	Write-Host "Setting up jobs...`t`t`t" -ForegroundColor Yellow -NoNewline
     for ($i = $StartIPAddress_Int64; $i -le $EndIPAddress_Int64; $i++) 
     { 
         $IPv4Address = Int64toIP -Int $i
 
         Write-Progress -Activity "Setting up jobs..." -Id 1 -Status "Current IP-Address: $IPv4Address" -PercentComplete ((($i - $StartIPAddress_Int64) / $IPRange_Int64) * 100)
-                      
+						 
         $Job = [System.Management.Automation.PowerShell]::Create().AddScript($ScriptBlock).AddArgument($IPv4Address).AddArgument($Tries).AddArgument($IncludeInactive)
         $Job.RunspacePool = $RunspacePool
         $Jobs += New-Object PSObject -Property @{
@@ -170,25 +171,27 @@ Process{
             Result = $Job.BeginInvoke()
         }
     }
-        
-    # Wait until all Jobs are finished
+	Write-Host "[" -ForegroundColor Gray -NoNewline; Write-Host "Done" -ForegroundColor Green -NoNewline; Write-Host "]" -ForegroundColor Gray	
+	
+	# Wait until all Jobs are finished
+	Write-Host "Waiting for jobs to complete...`t`t" -ForegroundColor Yellow -NoNewline
     Do {
         Start-Sleep -Milliseconds 500
               
-        Write-Progress -Activity "Waiting for jobs ($($Threads - $($RunspacePool.GetAvailableRunspaces())) of $Threads threads running)" -Id 1 -PercentComplete (($Jobs.count - $($($Jobs | Where-Object {$_.Result.IsCompleted -eq $false}).Count)) / $Jobs.Count * 100) -Status "$(@($($Jobs | Where-Object {$_.Result.IsCompleted -eq $false})).Count) remaining..."
+        Write-Progress -Activity "Waiting for jobs to complete... ($($Threads - $($RunspacePool.GetAvailableRunspaces())) of $Threads threads running)" -Id 1 -PercentComplete (($Jobs.count - $($($Jobs | Where-Object {$_.Result.IsCompleted -eq $false}).Count)) / $Jobs.Count * 100) -Status "$(@($($Jobs | Where-Object {$_.Result.IsCompleted -eq $false})).Count) remaining..."
                                 
     } While ($Jobs.Result.IsCompleted -contains $false)
-    
+    Write-Host "[" -ForegroundColor Gray -NoNewline; Write-Host "OK" -ForegroundColor Green -NoNewline; Write-Host "]" -ForegroundColor Gray		
+	
+	Write-Host "Process results...`t`t`t" -ForegroundColor Yellow -NoNewline
     # Built global array
-    $Results = @()
-   
+    $Results = @()   
     # Get results and fill the array
     foreach ($Job in $Jobs)
     {
         $Results += $Job.Pipe.EndInvoke($Job.Result)
     }
-    
-    Write-Host "`nScan finished!" -ForegroundColor Yellow        
+	Write-Host "[" -ForegroundColor Gray -NoNewline; Write-Host "Done" -ForegroundColor Green -NoNewline; Write-Host "]" -ForegroundColor Gray	
 }
 
 End {  
@@ -200,10 +203,10 @@ End {
     $ExecutionTimeSeconds = (New-TimeSpan -Start $StartTime -End $EndTime).Seconds
         
     # Some User-Output with Device UP/Down and execution time
-    Write-Host "`n----------------------------------------------------------------------------------------------------`n"
-    Write-Host "Devices Up:`t`t$(@($Results | Where-Object {($_.Status -eq "Up")}).Count)" 
-    Write-Host "Devices Down:`t`t$(@($Results | Where-Object {($_.Status -eq "Down")}).Count)"
-    Write-Host "`n----------------------------------------------------------------------------------------------------`n"
+    Write-Host "`n+----------------------------------------Result-----------------------------------------`n|"
+    Write-Host "|  Devices Up:`t`t$(@($Results | Where-Object {($_.Status -eq "Up")}).Count)" 
+    Write-Host "|  Devices Down:`t$(@($Results | Where-Object {($_.Status -eq "Down")}).Count)"
+    Write-Host "|`n+---------------------------------------------------------------------------------------`n"
     Write-Host "Script duration:`t$ExecutionTimeMinutes Minutes $ExecutionTimeSeconds Seconds`n" -ForegroundColor Yellow
     Write-Host "Script ($ScriptFileName) exit at $EndTime`n" -ForegroundColor Green
             
