@@ -1,6 +1,6 @@
 # PowerShell Async IPScanner
 
-Asynchronous Network Scanner which returns a custom PowerShell object with basic informations about the scanned IP-Range include IP-Address, Hostname (with FQDN) and Status.
+Powerful Asynchronous Network Scanner which returns a custom PowerShell object with basic informations about the scanned IP-Range include IP-Address, Hostname (with FQDN) and Status.
 
 ## Description
 
@@ -35,14 +35,12 @@ Include inactive devices
 ## Output
 
  ```powershell
- $Results
-
-IPv4Address Hostname                           Status
------------ --------                           ------
-172.16.0.1  FRITZ.BOX                          Up
-172.16.0.21 ANDROID-01.FRITZ.BOX               Up
-172.16.0.22 ANDROID-02.FRITZ.BOX               Up
-172.16.0.23 VM-2012R2-01.FRITZ.BOX             Up
-172.16.0.28 VPC-TEST-01.FRITZ.BOX              Up
+IPv4Address     Hostname                       Status
+-----------     --------                       ------
+172.16.0.1      FRITZ.BOX                      Up
+172.16.0.21     ANDROID-01.FRITZ.BOX           Up
+172.16.0.22     ANDROID-02.FRITZ.BOX           Up
+172.16.0.23     VM-2012R2-01.FRITZ.BOX         Up
+172.16.0.28     VPC-TEST-01.FRITZ.BOX          Up
 
  ```

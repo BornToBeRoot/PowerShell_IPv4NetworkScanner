@@ -14,7 +14,7 @@
     .DESCRIPTION
     I built this powerful asynchronous IP-Scanner, because every script i found on the Internet was very slow. 
     Most of them do there job, but ping every IP/Host in sequence and/or no one could ping more than /24. 
-    This is Ok if you have a few host, but if you want to scan a large IP-Range, you need a lot of hot coffee :)
+    This is Ok if you have a few host, but if you want to scan a large IP-Range, you need a lot of coffee :)
 
     This Script can scan every IP-Range you want. To do this, just enter a Start IP-Address and an End IP-Address.
     You don't need a specific subnetmask (for example 172.16.1.47 to 172.16.2.5 would work).
