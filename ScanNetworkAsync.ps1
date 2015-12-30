@@ -103,7 +103,7 @@ Begin{
     $EndIPAddress_Int64 = IPtoInt64 -IPAddr $EndIPAddress.ToString()
     $IPRange_Int64 = ($EndIPAddress_Int64 - $StartIPAddress_Int64)
 
-    # Check if Start IP is greater than End IP
+    # Validate IP-Range
     if($StartIPAddress_Int64 -gt $EndIPAddress_Int64)
     {
         Write-Host "Check your input! Invalid IP-range... (-EndIPAddress can't be lower than -StartIPAddress)" -ForegroundColor Red
