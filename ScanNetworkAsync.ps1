@@ -33,7 +33,7 @@
     ScanNetworkAsync.ps1 -StartIPAddress 192.168.1.1 -EndIPAddress 192.168.1.200
     
     .EXAMPLE
-    ScanNetworkAsync.ps1 -StartIPAddress 172.16.0.1 -EndIPAddress 172.16.1.254 -Threads 50 -Tries 2 -ActiveOnly
+    ScanNetworkAsync.ps1 -StartIPAddress 172.16.0.1 -EndIPAddress 172.16.1.254 -Threads 100 -Tries 2 -IncludeInactive
 
     .LINK
     Github Profil:         https://github.com/BornToBeRoot
@@ -69,14 +69,25 @@ Param(
     [Parameter(
         Position=4,
         Mandatory=$false,
-        HelpMessage='Show inactive devices in result')]
-    [switch]$IncludeInactive      
+        HelpMessage='Show inactive devices in result (Default=Disabled)')]
+    [switch]$IncludeInactive,
+    
+    [Parameter(
+        Position=5,
+        Mandatory=$false,
+        HelpMessage='Enable or Disable DNS resolving (Default=Enabled')]
+    [switch]$ResolveDNS=$true,
+
+    [Parameter(
+        Position=6,
+        Mandatory=$false,
+        HelpMessage='Get MAC-Address from IP-Address (Only work in the same subnet) (Default=Disabled)')]  
+    [switch]$GetMAC
 )
 
 Begin{
 	# Time when the script starts
-    $StartTime = Get-Date
-
+    $StartTime = Get-Date   
     # Script FileName
     $ScriptFileName = $MyInvocation.MyCommand.Name      
         
@@ -126,25 +137,41 @@ Process{
         $IPv4Address = $args[0]
         $Tries = $args[1]
         $IncludeInactive = $args[2]
-               
+        $ResolveDNS = $args[3]
+        $GetMac = $args[4]
+                  
         # Test if device is available
-        if(Test-Connection -ComputerName $IPv4Address -Count $Tries -Quiet) { $Status = "Up" } else { $Status = "Down" }		
-		  
-        $Hostname = [String]::Empty 
-
+        if(Test-Connection -ComputerName $IPv4Address -Count $Tries -Quiet) { $Status = "Up" } else { $Status = "Down" }	
+      
         # Resolve DNS
-        if($Status -eq "Up" -or $IncludeInactive)
-        {   	
-		    try { $Hostname = ([System.Net.Dns]::GetHostEntry($IPv4Address).HostName).ToUpper() }
-            catch { } # No DNS found                        
-      	}
+        $Hostname = [String]::Empty          
 
-        ### Built custom PSObject
+        if($ResolveDNS -and ($Status -eq "Up" -or $IncludeInactive))
+        {   	
+		    try { 
+                $Hostname = ([System.Net.Dns]::GetHostEntry($IPv4Address).HostName).ToUpper()             
+            } 
+           catch { }                     
+     	}
+     
+        # Get MAC-Address
+        $MAC = [String]::Empty 
+        
+        if($GetMAC -and ($Status -eq "Up"))
+        {
+            try {
+                $nbtstat_result = nbtstat -A $IPv4Address | Select-String "MAC"
+                $MAC = [String]([Regex]::Matches($nbtstat_result, "([0-9A-F][0-9A-F]-){5}([0-9A-F][0-9A-F])")) 
+            }  
+            catch { }         
+        }
+        
+        # Built custom PSObject
 		$Result = New-Object -TypeName PSObject
         Add-Member -InputObject $Result -MemberType NoteProperty -Name IPv4Address -Value $IPv4Address
-        Add-Member -InputObject $Result -MemberType NoteProperty -Name Hostname -Value $Hostname            
-		Add-Member -InputObject $Result -MemberType NoteProperty -Name Status -Value $Status
-		
+        if($ResolveDNS) { Add-Member -InputObject $Result -MemberType NoteProperty -Name Hostname -Value $Hostname }
+        if($GetMAC) { Add-Member -InputObject $Result -MemberType NoteProperty -Name MAC -Value $MAC }         
+        Add-Member -InputObject $Result -MemberType NoteProperty -Name Status -Value $Status		
         return $Result      
     }            
         
@@ -163,7 +190,7 @@ Process{
 
         Write-Progress -Activity "Setting up jobs..." -Id 1 -Status "Current IP-Address: $IPv4Address" -PercentComplete ((($i - $StartIPAddress_Int64) / $IPRange_Int64) * 100)
 						 
-        $Job = [System.Management.Automation.PowerShell]::Create().AddScript($ScriptBlock).AddArgument($IPv4Address).AddArgument($Tries).AddArgument($IncludeInactive)
+        $Job = [System.Management.Automation.PowerShell]::Create().AddScript($ScriptBlock).AddArgument($IPv4Address).AddArgument($Tries).AddArgument($IncludeInactive).AddArgument($ResolveDNS).AddArgument($GetMAC)
         $Job.RunspacePool = $RunspacePool
         $Jobs += New-Object PSObject -Property @{
             RunNum = $i - $StartIPAddress_Int64
