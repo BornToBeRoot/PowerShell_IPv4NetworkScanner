@@ -57,13 +57,13 @@ Param(
 	[Parameter(
 		Position=2,
 		Mandatory=$false,
-		HelpMessage='Set the maximum number of threads at the same time (Default 256)')]
+		HelpMessage='Set the maximum number of threads at the same time (Default=256)')]
 	[Int32]$Threads=256,
 	
 	[Parameter(
 		Position=3,
 		Mandatory=$false,
-		HelpMessage='Set the maximum number of Test-Connection checks for each IP (Default 2)')]
+		HelpMessage='Set the maximum number of Test-Connection checks for each IP (Default=2)')]
 	[Int32]$Tries=2,
 
     [Parameter(
