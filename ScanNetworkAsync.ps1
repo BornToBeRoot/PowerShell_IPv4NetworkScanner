@@ -30,7 +30,7 @@
     the links below.
                 
     .EXAMPLE
-    ScanNetworkAsync.ps1 -StartIPAddress 192.168.1.1 -EndIPAddress 192.168.1.200
+    ScanNetworkAsync.ps1 -StartIPAddress 192.168.1.1 -EndIPAddress 192.168.1.200 -GetMAC
     
     .EXAMPLE
     ScanNetworkAsync.ps1 -StartIPAddress 172.16.0.1 -EndIPAddress 172.16.1.254 -Threads 100 -Tries 2 -IncludeInactive
@@ -88,6 +88,7 @@ Param(
 Begin{
 	# Time when the script starts
     $StartTime = Get-Date   
+    
     # Script FileName
     $ScriptFileName = $MyInvocation.MyCommand.Name      
         
@@ -112,6 +113,7 @@ Begin{
 
     $StartIPAddress_Int64 = IPtoInt64 -IPAddr $StartIPAddress.ToString()
     $EndIPAddress_Int64 = IPtoInt64 -IPAddr $EndIPAddress.ToString()
+
     $IPRange_Int64 = ($EndIPAddress_Int64 - $StartIPAddress_Int64)
 
     # Validate IP-Range
@@ -141,7 +143,14 @@ Process{
         $GetMac = $args[4]
                   
         # Test if device is available
-        if(Test-Connection -ComputerName $IPv4Address -Count $Tries -Quiet) { $Status = "Up" } else { $Status = "Down" }	
+        if(Test-Connection -ComputerName $IPv4Address -Count $Tries -Quiet) 
+        { 
+            $Status = "Up" 
+        } 
+        else 
+        { 
+            $Status = "Down" 
+        }	
       
         # Resolve DNS
         $Hostname = [String]::Empty          
@@ -151,7 +160,7 @@ Process{
 		    try { 
                 $Hostname = ([System.Net.Dns]::GetHostEntry($IPv4Address).HostName).ToUpper()             
             } 
-           catch { }                     
+            catch { } # No DNS                    
      	}
      
         # Get MAC-Address
@@ -163,32 +172,38 @@ Process{
                 $nbtstat_result = nbtstat -A $IPv4Address | Select-String "MAC"
                 $MAC = [String]([Regex]::Matches($nbtstat_result, "([0-9A-F][0-9A-F]-){5}([0-9A-F][0-9A-F])")) 
             }  
-            catch { }         
+            catch { } # No MAC        
         }
         
         # Built custom PSObject
-		$Result = New-Object -TypeName PSObject
-        Add-Member -InputObject $Result -MemberType NoteProperty -Name IPv4Address -Value $IPv4Address
-        if($ResolveDNS) { Add-Member -InputObject $Result -MemberType NoteProperty -Name Hostname -Value $Hostname }
-        if($GetMAC) { Add-Member -InputObject $Result -MemberType NoteProperty -Name MAC -Value $MAC }         
+		$Result = New-Object -TypeName PSObject        
+        Add-Member -InputObject $Result -MemberType NoteProperty -Name IPv4Address -Value $IPv4Address        
+        if($ResolveDNS) { 
+            Add-Member -InputObject $Result -MemberType NoteProperty -Name Hostname -Value $Hostname }        
+        if($GetMAC) { 
+            Add-Member -InputObject $Result -MemberType NoteProperty -Name MAC -Value $MAC }       
         Add-Member -InputObject $Result -MemberType NoteProperty -Name Status -Value $Status		
         return $Result      
     }            
         
 	# Setting up runspaces
 	Write-Host "Setting up runspace pool...`t`t" -ForegroundColor Yellow -NoNewline
+
     $RunspacePool = [System.Management.Automation.Runspaces.RunspaceFactory]::CreateRunspacePool(1,$Threads, $Host)
     $RunspacePool.Open()
     $Jobs = @()
-	Write-Host "[" -ForegroundColor Gray -NoNewline; Write-Host "Done" -ForegroundColor Green -NoNewline; Write-Host "]" -ForegroundColor Gray	
+	
+    Write-Host "[" -ForegroundColor Gray -NoNewline; Write-Host "Done" -ForegroundColor Green -NoNewline; Write-Host "]" -ForegroundColor Gray	
 	
     # Setting up jobs
 	Write-Host "Setting up jobs...`t`t`t" -ForegroundColor Yellow -NoNewline
+    
     for ($i = $StartIPAddress_Int64; $i -le $EndIPAddress_Int64; $i++) 
     { 
         $IPv4Address = Int64toIP -Int $i
-
-        Write-Progress -Activity "Setting up jobs..." -Id 1 -Status "Current IP-Address: $IPv4Address" -PercentComplete ((($i - $StartIPAddress_Int64) / $IPRange_Int64) * 100)
+        
+        if($IPRange_Int64 -gt 0) { $Progress_Percent = (($i - $StartIPAddress_Int64) / $IPRange_Int64) * 100 } else { $Progress_Percent = 100 }
+        Write-Progress -Activity "Setting up jobs..." -Id 1 -Status "Current IP-Address: $IPv4Address" -PercentComplete ($Progress_Percent) 
 						 
         $Job = [System.Management.Automation.PowerShell]::Create().AddScript($ScriptBlock).AddArgument($IPv4Address).AddArgument($Tries).AddArgument($IncludeInactive).AddArgument($ResolveDNS).AddArgument($GetMAC)
         $Job.RunspacePool = $RunspacePool
@@ -198,27 +213,33 @@ Process{
             Result = $Job.BeginInvoke()
         }
     }
-	Write-Host "[" -ForegroundColor Gray -NoNewline; Write-Host "Done" -ForegroundColor Green -NoNewline; Write-Host "]" -ForegroundColor Gray	
+	
+    Write-Host "[" -ForegroundColor Gray -NoNewline; Write-Host "Done" -ForegroundColor Green -NoNewline; Write-Host "]" -ForegroundColor Gray	
 	
 	# Wait until all Jobs are finished
 	Write-Host "Waiting for jobs to complete...`t`t" -ForegroundColor Yellow -NoNewline
+    
     Do {
         Start-Sleep -Milliseconds 500
-              
-        Write-Progress -Activity "Waiting for jobs to complete... ($($Threads - $($RunspacePool.GetAvailableRunspaces())) of $Threads threads running)" -Id 1 -PercentComplete (($Jobs.count - $($($Jobs | Where-Object {$_.Result.IsCompleted -eq $false}).Count)) / $Jobs.Count * 100) -Status "$(@($($Jobs | Where-Object {$_.Result.IsCompleted -eq $false})).Count) remaining..."
-                                
+                      
+        Write-Progress -Activity "Waiting for jobs to complete... ($($Threads - $($RunspacePool.GetAvailableRunspaces())) of $Threads threads running)" -Id 1 -PercentComplete (($Jobs.count - $($($Jobs | Where-Object {$_.Result.IsCompleted -eq $false}).Count)) / $Jobs.Count * 100) -Status "$(@($($Jobs | Where-Object {$_.Result.IsCompleted -eq $false})).Count) remaining..."                                
+
     } While ($Jobs.Result.IsCompleted -contains $false)
-    Write-Host "[" -ForegroundColor Gray -NoNewline; Write-Host "OK" -ForegroundColor Green -NoNewline; Write-Host "]" -ForegroundColor Gray		
+    
+    Write-Host "[" -ForegroundColor Gray -NoNewline; Write-Host "Done" -ForegroundColor Green -NoNewline; Write-Host "]" -ForegroundColor Gray		
 	
 	Write-Host "Process results...`t`t`t" -ForegroundColor Yellow -NoNewline
+    
     # Built global array
     $Results = @()   
+    
     # Get results and fill the array
     foreach ($Job in $Jobs)
     {
         $Results += $Job.Pipe.EndInvoke($Job.Result)
     }
-	Write-Host "[" -ForegroundColor Gray -NoNewline; Write-Host "Done" -ForegroundColor Green -NoNewline; Write-Host "]" -ForegroundColor Gray	
+	
+    Write-Host "[" -ForegroundColor Gray -NoNewline; Write-Host "Done" -ForegroundColor Green -NoNewline; Write-Host "]" -ForegroundColor Gray	
 }
 
 End {  
