@@ -17,30 +17,39 @@ If you found a bug or have some ideas to improve this script... Let me know. You
 ## Syntax
 
 ```powershell
-.\ScanNetworkAsync.ps1 [-StartIPAddress] <IPAddress> [-EndIPAddress] <IPAddress> [[-Threads] <Int32>] [[-Tries] <Int32>] [[-IncludeInactive]] [<CommonParameters>]
+.\ScanNetworkAsync.ps1 [-StartIPAddress] <IPAddress> [-EndIPAddress] <IPAddress> [[-Threads] <Int32>] [[-Tries] <Int32>] [[-IncludeInactive]] [[-ResolveDNS]] [[-GetMAC]] [<CommonParameters>] 
 ```
 
 ## Example
 
 Simple IP-Range Scan
 ```powershell
-.\ScanNetworkAsync.ps1 -StartIPAddress 192.168.1.1 -EndIPAddress 192.168.1.200
+.\ScanNetworkAsync.ps1 -StartIPAddress 192.168.1.1 -EndIPAddress 192.168.1.200 
 ```
 
 Include inactive devices
 ```powershell 
-.\ScanNetworkAsync.ps1 -StartIPAddress 172.16.0.1 -EndIPAddress 172.16.1.254 -Threads 50 -Tries 1 -IncludeInactive
+.\ScanNetworkAsync.ps1 -StartIPAddress 172.16.0.1 -EndIPAddress 172.16.1.254 -IncludeInactive
+```
+
+Get MAC-Addresses (Only work if you are in the same Subnet)
+```powershell
+.\ScanNetworkAsync.ps1 -StartIPAddress 192.168.10.1 -EndIPAddress 192.168.10.25 -GetMAC
+```
+
+Disable DNS resolving
+```powershell
+.\ScanNetworkAsync.ps1 -StartIPAddress 192.168.2.100 -EndIPAddress 192.168.2.254 -ResolveDNS:$false
 ```
 
 ## Output
 
- ```powershell
-IPv4Address     Hostname                       Status
------------     --------                       ------
-172.16.0.1      FRITZ.BOX                      Up
-172.16.0.21     ANDROID-01.FRITZ.BOX           Up
-172.16.0.22     ANDROID-02.FRITZ.BOX           Up
-172.16.0.23     VM-2012R2-01.FRITZ.BOX         Up
-172.16.0.28     VPC-TEST-01.FRITZ.BOX          Up
-
+```powershell
+IPv4Address     Hostname                  MAC                   Status
+-----------     --------                  ---                   ------
+172.16.0.1      FRITZ.BOX                 AA-BB-CC-DD-EE-FF     Up
+172.16.0.21     ANDROID-01.FRITZ.BOX      AA-AA-BB-BB-DD-EE     Up
+172.16.0.22     ANDROID-02.FRITZ.BOX                            Down
+172.16.0.23     VM-2012R2-01.FRITZ.BOX    00-11-22-33-44-55     Up
+172.16.0.28     VPC-TEST-01.FRITZ.BOX     AA-00-BB-11-CC-22     Up
  ```
