@@ -158,7 +158,7 @@ Process{
         if($ResolveDNS -and ($Status -eq "Up" -or $IncludeInactive))
         {   	
 		    try { 
-                $Hostname = ([System.Net.Dns]::GetHostEntry($IPv4Address).HostName).ToUpper()             
+                $Hostname = ([System.Net.Dns]::GetHostEntry($IPv4Address).HostName)
             } 
             catch { } # No DNS                    
      	}
