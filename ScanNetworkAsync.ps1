@@ -8,7 +8,7 @@
 
 <#
     .SYNOPSIS
-    Asynchronous IP-Scanner which returns a custom PowerShell object with basic informations about the 
+    Powerful asynchronous IP-Scanner which returns a custom PowerShell-Object with basic informations about the 
     scanned IP-Range include IP-Address, Hostname (with FQDN) and Status.
 
     .DESCRIPTION
@@ -30,10 +30,10 @@
     the links below.
                 
     .EXAMPLE
-    ScanNetworkAsync.ps1 -StartIPAddress 192.168.1.1 -EndIPAddress 192.168.1.200 -GetMAC
+    .\ScanNetworkAsync.ps1 -StartIPAddress 192.168.1.1 -EndIPAddress 192.168.1.200 -GetMAC
     
     .EXAMPLE
-    ScanNetworkAsync.ps1 -StartIPAddress 172.16.0.1 -EndIPAddress 172.16.1.254 -Threads 100 -Tries 2 -IncludeInactive
+    .\ScanNetworkAsync.ps1 -StartIPAddress 172.16.0.1 -EndIPAddress 172.16.1.254 -Threads 100 -Tries 2 -IncludeInactive
 
     .LINK
     Github Profil:         https://github.com/BornToBeRoot
