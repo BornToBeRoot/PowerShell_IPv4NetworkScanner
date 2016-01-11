@@ -119,7 +119,7 @@ Begin{
     # Validate IP-Range
     if($StartIPAddress_Int64 -gt $EndIPAddress_Int64)
     {
-        Write-Host "Check your input! Invalid IP-range... (-EndIPAddress can't be lower than -StartIPAddress)" -ForegroundColor Red
+        Write-Host "Check your input! Invalid IP-Range... (-EndIPAddress can't be lower than -StartIPAddress)" -ForegroundColor Red
         exit
     }
 
@@ -135,7 +135,7 @@ Begin{
 Process{ 
 	# Scriptblock that will run in runspaces (threads)...
     [System.Management.Automation.ScriptBlock]$ScriptBlock = {
-        ### Parameters
+        # Parameters
         $IPv4Address = $args[0]
         $Tries = $args[1]
         $IncludeInactive = $args[2]
@@ -143,14 +143,7 @@ Process{
         $GetMac = $args[4]
                   
         # Test if device is available
-        if(Test-Connection -ComputerName $IPv4Address -Count $Tries -Quiet) 
-        { 
-            $Status = "Up" 
-        } 
-        else 
-        { 
-            $Status = "Down" 
-        }	
+        if(Test-Connection -ComputerName $IPv4Address -Count $Tries -Quiet) { $Status = "Up" } else { $Status = "Down" }	
       
         # Resolve DNS
         $Hostname = [String]::Empty          
@@ -187,9 +180,9 @@ Process{
     }            
         
 	# Setting up runspaces
-	Write-Host "Setting up runspace pool...`t`t" -ForegroundColor Yellow -NoNewline
+	Write-Host "Setting up Runspace-Pool...`t`t" -ForegroundColor Yellow -NoNewline
 
-    $RunspacePool = [System.Management.Automation.Runspaces.RunspaceFactory]::CreateRunspacePool(1,$Threads, $Host)
+    $RunspacePool = [System.Management.Automation.Runspaces.RunspaceFactory]::CreateRunspacePool(1, $Threads, $Host)
     $RunspacePool.Open()
     $Jobs = @()
 	
@@ -211,7 +204,7 @@ Process{
             RunNum = $i - $StartIPAddress_Int64
             Pipe = $Job
             Result = $Job.BeginInvoke()
-        }
+        }				
     }
 	
     Write-Host "[" -ForegroundColor Gray -NoNewline; Write-Host "Done" -ForegroundColor Green -NoNewline; Write-Host "]" -ForegroundColor Gray	
