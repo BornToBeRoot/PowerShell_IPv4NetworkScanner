@@ -219,6 +219,8 @@ Process{
 
     } While ($Jobs.Result.IsCompleted -contains $false)
     
+    Write-Progress -Activity "All Jobs completed!" -Id 1 -Completed
+    
     Write-Host "[" -ForegroundColor Gray -NoNewline; Write-Host "Done" -ForegroundColor Green -NoNewline; Write-Host "]" -ForegroundColor Gray		
 	
 	Write-Host "Process results...`t`t`t" -ForegroundColor Yellow -NoNewline
