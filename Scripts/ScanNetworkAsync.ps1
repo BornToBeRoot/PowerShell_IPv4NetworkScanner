@@ -5,6 +5,7 @@
 # Description  :  Asynchronus IP-Scanner
 # Repository   :  https://github.com/BornToBeRoot/PowerShell-Async-IPScanner
 ###############################################################################################################
+# Date copied  : 09.02.2015 
 
 <#
     .SYNOPSIS
@@ -45,13 +46,13 @@ Param(
 	[Parameter(
 		Position=0,
 		Mandatory=$true,
-		HelpMessage='Enter the Start IP-Address (like 172.16.0.1)')]
+		HelpMessage='Start IP-Address like 172.16.0.1')]
 	[IPAddress]$StartIPAddress,
 	
 	[Parameter(
 		Position=1,
 		Mandatory=$true,
-		HelpMessage='Enter the End IP-Address like 172.16.1.254')]
+		HelpMessage='End IP-Address like 172.16.1.254']
 	[IPAddress]$EndIPAddress,
 
 	[Parameter(
@@ -220,7 +221,7 @@ Process{
     } While ($Jobs.Result.IsCompleted -contains $false)
     
     Write-Progress -Activity "All Jobs completed!" -Id 1 -Completed
-    
+
     Write-Host "[" -ForegroundColor Gray -NoNewline; Write-Host "Done" -ForegroundColor Green -NoNewline; Write-Host "]" -ForegroundColor Gray		
 	
 	Write-Host "Process results...`t`t`t" -ForegroundColor Yellow -NoNewline
