@@ -52,7 +52,7 @@ Param(
 	[Parameter(
 		Position=1,
 		Mandatory=$true,
-		HelpMessage='End IP-Address like 172.16.1.254']
+		HelpMessage='End IP-Address like 172.16.1.254')]
 	[IPAddress]$EndIPAddress,
 
 	[Parameter(
