@@ -5,7 +5,6 @@
 # Description  :  Asynchronus IP-Scanner
 # Repository   :  https://github.com/BornToBeRoot/PowerShell-Async-IPScanner
 ###############################################################################################################
-# Date copied  : 09.02.2015 
 
 <#
     .SYNOPSIS
@@ -126,11 +125,11 @@ Begin{
 
 	# Some User-Output about the selected or default settings	
     Write-Host "`nScript ($ScriptFileName) started at $StartTime" -ForegroundColor Green
-    Write-Host "`n+---------------------------------------Settings----------------------------------------`n|"
+    Write-Host "`n+=-=-=-=-=-=-=-=-=-=-=-=-= Settings =-=-=-=-=-=-=-=-=-=-=-=-=`n|"
     Write-Host "|  IP-Range:`t`t$StartIPAddress - $EndIPAddress"
     Write-Host "|  Threads:`t`t$Threads"
     Write-Host "|  Tries:`t`t$Tries"
-    Write-Host "|`n+---------------------------------------------------------------------------------------`n"      
+    Write-Host "|`n+============================================================`n"      
 }
 
 Process{ 
@@ -247,10 +246,10 @@ End {
     $ExecutionTimeSeconds = (New-TimeSpan -Start $StartTime -End $EndTime).Seconds
         
     # Some User-Output with Device UP/Down and execution time
-    Write-Host "`n+----------------------------------------Result-----------------------------------------`n|"
+    Write-Host "`n+=-=-=-=-=-=-=-=-=-=-=-=-=  Result  =-=-=-=-=-=-=-=-=-=-=-=-=`n|"
     Write-Host "|  Devices Up:`t`t$(@($Results | Where-Object {($_.Status -eq "Up")}).Count)" 
     Write-Host "|  Devices Down:`t$(@($Results | Where-Object {($_.Status -eq "Down")}).Count)"
-    Write-Host "|`n+---------------------------------------------------------------------------------------`n"
+    Write-Host "|`n+============================================================`n"
     Write-Host "Script duration:`t$ExecutionTimeMinutes Minutes $ExecutionTimeSeconds Seconds`n" -ForegroundColor Yellow
     Write-Host "Script ($ScriptFileName) exit at $EndTime`n" -ForegroundColor Green
             
