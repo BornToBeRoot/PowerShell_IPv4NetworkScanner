@@ -3,7 +3,7 @@
 # Script Name  :  ScanNetworkAsync.ps1
 # Autor        :  BornToBeRoot (https://github.com/BornToBeRoot)
 # Description  :  Asynchronus IP-Scanner
-# Repository   :  https://github.com/BornToBeRoot/PowerShell-Async-IPScanner
+# Repository   :  https://github.com/BornToBeRoot/PowerShell_Async-IPScanner
 ###############################################################################################################
 
 <#
@@ -37,7 +37,7 @@
 
     .LINK
     Github Profil:         https://github.com/BornToBeRoot
-    Github Repository:     https://github.com/BornToBeRoot/PowerShell-Async-IPScanner
+    Github Repository:     https://github.com/BornToBeRoot/PowerShell_Async-IPScanner
 #>
 
 [CmdletBinding()]
