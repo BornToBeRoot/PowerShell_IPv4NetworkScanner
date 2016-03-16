@@ -2,7 +2,7 @@
 # Language     :  PowerShell 4.0
 # Script Name  :  ScanNetworkAsync.ps1
 # Autor        :  BornToBeRoot (https://github.com/BornToBeRoot)
-# Description  :  Asynchronus IP-Scanner
+# Description  :  Powerful asynchronus IP-Scanner for PowerShell
 # Repository   :  https://github.com/BornToBeRoot/PowerShell_Async-IPScanner
 ###############################################################################################################
 
@@ -88,10 +88,10 @@ Param(
 Begin{
 	# Time when the script starts
     $StartTime = Get-Date   
-    
+
     # Script FileName
     $ScriptFileName = $MyInvocation.MyCommand.Name      
-        
+   
     ### - - - Include functions - - - ###
     # Function to convert IPv4-Address from and to Int64
     
@@ -112,6 +112,7 @@ Begin{
     ### - - - - - - - - - - - - - - - ###
 
     $StartIPAddress_Int64 = IPtoInt64 -IPAddr $StartIPAddress.ToString()
+    
     $EndIPAddress_Int64 = IPtoInt64 -IPAddr $EndIPAddress.ToString()
 
     $IPRange_Int64 = ($EndIPAddress_Int64 - $StartIPAddress_Int64)
@@ -193,8 +194,8 @@ Process{
     
     for ($i = $StartIPAddress_Int64; $i -le $EndIPAddress_Int64; $i++) 
     { 
-        $IPv4Address = Int64toIP -Int $i
-        
+        $IPv4Address = Int64toIP -Int $i                
+
         if($IPRange_Int64 -gt 0) { $Progress_Percent = (($i - $StartIPAddress_Int64) / $IPRange_Int64) * 100 } else { $Progress_Percent = 100 }
         Write-Progress -Activity "Setting up jobs..." -Id 1 -Status "Current IP-Address: $IPv4Address" -PercentComplete ($Progress_Percent) 
 						 
