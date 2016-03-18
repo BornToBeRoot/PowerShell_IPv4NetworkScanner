@@ -19,7 +19,7 @@ If all IPs are finished scanning, the script returns a custom PowerShell object 
 ## Syntax
 
 ```powershell
-.\ScanNetworkAsync.ps1 [-StartIPAddress] <IPAddress> [-EndIPAddress] <IPAddress> [[-Threads] <Int32>] [[-Tries] <Int32>] [[-IncludeInactive]] [[-ResolveDNS]] [[-GetMAC]] [<CommonParameters>] 
+.\ScanNetworkAsync.ps1 [-StartIPAddress] <IPAddress> [-EndIPAddress] <IPAddress> [[-Threads] <Int32>] [[-Tries] <Int32>] [[-IncludeInactive]] [[-ResolveDNS]] [[-GetMAC]] [[-UpdateListFromIEEE] [<CommonParameters>] 
 ```
 
 ## Example
@@ -47,11 +47,22 @@ Disable DNS resolving
 ## Output
 
 ```powershell
-IPv4Address     Hostname                  MAC                   Status
------------     --------                  ---                   ------
-172.16.0.1      FRITZ.BOX                 AA-BB-CC-DD-EE-FF     Up
-172.16.0.21     ANDROID-01.FRITZ.BOX      AA-AA-BB-BB-DD-EE     Up
-172.16.0.22     ANDROID-02.FRITZ.BOX                            Down
-172.16.0.23     VM-2012R2-01.FRITZ.BOX    00-11-22-33-44-55     Up
-172.16.0.28     VPC-TEST-01.FRITZ.BOX     AA-00-BB-11-CC-22     Up
+IPv4Address     Hostname                  Status
+-----------     --------                  ------
+172.16.0.1      FRITZ.BOX                 Up
+172.16.0.21     ANDROID-01.FRITZ.BOX      Up
+172.16.0.22     ANDROID-02.FRITZ.BOX      Down
+172.16.0.23     VM-2012R2-01.FRITZ.BOX    Up
+172.16.0.28     VPC-TEST-01.FRITZ.BOX     Up
  ```
+with "-GetMAC"
+
+```powershell
+IPv4Address     Hostname                  MAC                   Vendor     Status
+-----------     --------                  ---                   ------     ------
+172.16.0.1      FRITZ.BOX                 AA-BB-CC-DD-EE-FF     AVM        Up
+172.16.0.21     ANDROID-01.FRITZ.BOX      AA-AA-BB-BB-DD-EE     Cisco      Up
+172.16.0.22     ANDROID-02.FRITZ.BOX                                       Down
+172.16.0.23     VM-2012R2-01.FRITZ.BOX    00-11-22-33-44-55     Netgear    Up
+172.16.0.28     VPC-TEST-01.FRITZ.BOX     AA-00-BB-11-CC-22     Netgear    Up
+```
