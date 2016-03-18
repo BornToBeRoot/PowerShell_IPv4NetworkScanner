@@ -56,42 +56,106 @@ Param(
 
 	[Parameter(
 		Position=2,
-		Mandatory=$false,
 		HelpMessage='Set the maximum number of threads at the same time (Default=256)')]
 	[Int32]$Threads=256,
 	
 	[Parameter(
 		Position=3,
-		Mandatory=$false,
 		HelpMessage='Set the maximum number of Test-Connection checks for each IP (Default=2)')]
 	[Int32]$Tries=2,
 
     [Parameter(
         Position=4,
-        Mandatory=$false,
         HelpMessage='Show inactive devices in result (Default=Disabled)')]
     [switch]$IncludeInactive,
     
     [Parameter(
         Position=5,
-        Mandatory=$false,
         HelpMessage='Enable or Disable DNS resolving (Default=Enabled')]
     [switch]$ResolveDNS=$true,
 
     [Parameter(
         Position=6,
-        Mandatory=$false,
         HelpMessage='Get MAC-Address from IP-Address (Only work in the same subnet) (Default=Disabled)')]  
-    [switch]$GetMAC
+    [switch]$GetMAC,
+
+    [Parameter(
+        Position=7,
+        HelpMessage='Update IEEE Standards Registration Authority from IEEE.org (https://standards.ieee.org/develop/regauth/oui/oui.csv)')]
+    [switch]$UpdateListFromIEEE  
 )
 
 Begin{
 	# Time when the script starts
     $StartTime = Get-Date   
 
-    # Script FileName
+    # Script Path and FileName
+    $Script_Startup_Path = Split-Path -Parent $MyInvocation.MyCommand.Path
     $ScriptFileName = $MyInvocation.MyCommand.Name      
    
+    # IEEE ->  The Public Listing For IEEE Standards Registration Authority -> CSV-File
+    $IEEE_MACVendorList_WebUri = "http://standards.ieee.org/develop/regauth/oui/oui.csv"
+
+    #Local path to MACVendorList
+    $CSV_MACVendorList_Path = "$Script_Startup_Path\IEEE_Standards_Registration_Authority.csv"
+    $CSV_MACVendorList_BackupPath = "$Script_Startup_Path\IEEE_Standards_Registration_Authority.csv.bak"
+    
+    if($UpdateListFromIEEE)
+    {
+        try
+        {
+            Write-Host "Updating IEEE Standards Registration Authority from IEEE.org...`t" -ForegroundColor Gray -NoNewline
+            
+            # Save file before download a new version     
+            if([System.IO.File]::Exists($CSV_MACVendorList_Path))
+            {
+                Rename-Item -Path $CSV_MACVendorList_Path -NewName $CSV_MACVendorList_BackupPath
+            }
+
+            # Download csv-file
+            Invoke-WebRequest -Uri $IEEE_MACVendorList_WebUri -OutFile $CSV_MACVendorList_Path
+
+            # Remove Backup if no error
+            if([System.IO.File]::Exists($CSV_MACVendorList_BackupPath))
+            {
+                Remove-Item -Path $CSV_MACVendorList_BackupPath
+            }
+
+            Write-Host "OK" -ForegroundColor Green
+        }
+        catch
+        {
+            Write-Host "Restore"
+            # On  error: cleanup downloaded file and restore backup
+            if([System.IO.File]::Exists($CSV_MACVendorList_Path))
+            {
+                Remove-Item -Path $CSV_MACVendorList_Path
+            }
+
+            if([System.IO.File]::Exists($CSV_MACVendorList_BackupPath))
+            {
+                Rename-Item -Path $CSV_MACVendorList_BackupPath -NewName $CSV_MACVendorList_Path
+            }
+
+            $ErrorMsg = $_.Exception.Message
+            
+            Write-Host "Update IEEE Standards Registration Authority from IEEE.org failed with the follwing error message: $ErrorMsg"  -ForegroundColor Red
+        }        
+    }  
+    elseif(($GetMAC) -and (-Not([System.IO.File]::Exists($CSV_MACVendorList_Path))))
+    {   
+        Write-Host 'No CSV-File to assign vendor with MAC-Address found! Use the parameter "-UpdateListFromIEEE" to download the latest version from IEEE.org. This warning doesn`t affect the scanning procedure.' -ForegroundColor Yellow
+    }   
+        
+    if(($GetMAC) -and ([System.IO.File]::Exists($CSV_MACVendorList_Path)))
+    { 
+        $AssignMACtoVendorList = $true 
+    } 
+    else 
+    { 
+        $AssignMACtoVendorList = $false 
+    }
+    
     ### - - - Include functions - - - ###
     # Function to convert IPv4-Address from and to Int64
     
@@ -162,11 +226,24 @@ Process{
         
         if($GetMAC -and ($Status -eq "Up"))
         {
-            try {
-                $nbtstat_result = nbtstat -A $IPv4Address | Select-String "MAC"
-                $MAC = [String]([Regex]::Matches($nbtstat_result, "([0-9A-F][0-9A-F]-){5}([0-9A-F][0-9A-F])")) 
-            }  
-            catch { } # No MAC        
+            $Arp_Result = arp -a 
+
+            foreach($Line in $Arp_Result)
+            {
+                if($Line.TrimStart().StartsWith($IPv4Address))
+                {
+                    $MAC = [String]([Regex]::Matches($Line.ToUpper(), "([0-9A-F][0-9A-F]-){5}([0-9A-F][0-9A-F])")) 
+                }
+            }
+
+            if([String]::IsNullOrEmpty($MAC))
+            {
+                try {              
+                    $nbtstat_result = nbtstat -A $IPv4Address | Select-String "MAC"
+                    $MAC = [String]([Regex]::Matches($nbtstat_result, "([0-9A-F][0-9A-F]-){5}([0-9A-F][0-9A-F])")) 
+                }  
+                catch { } # No MAC   
+            }     
         }
         
         # Built custom PSObject
@@ -227,18 +304,71 @@ Process{
 	Write-Host "Process results...`t`t`t" -ForegroundColor Yellow -NoNewline
     
     # Built global array
-    $Results = @()   
+    $Jop_Results = @()   
     
     # Get results and fill the array
     foreach ($Job in $Jobs)
     {
-        $Results += $Job.Pipe.EndInvoke($Job.Result)
+        $Jop_Results += $Job.Pipe.EndInvoke($Job.Result)
     }
 	
     Write-Host "[" -ForegroundColor Gray -NoNewline; Write-Host "Done" -ForegroundColor Green -NoNewline; Write-Host "]" -ForegroundColor Gray	
+
+    if($AssignMACtoVendorList)
+    {
+        Write-Host "Assign Vendor to MAC-Address...`t`t" -ForegroundColor Yellow -NoNewline
+
+        $MAC_VendorList =  Import-Csv -Path $CSV_MACVendorList_Path | Select-Object "Assignment", "Organization Name"
+
+        $Results_Vendor_Assigned = @()
+
+        foreach($Job_Result in $Jop_Results)
+        {
+            $Vendor = [String]::Empty
+
+            if(-not([String]::IsNullOrEmpty($Job_Result.MAC)))
+            {
+                $MACVendor_Search = $Job_Result.MAC.Replace("-","").Substring(0,6)
+
+                foreach($MAC_VendorEntry in $MAC_VendorList)
+                {
+                    if($MAC_VendorEntry.Assignment -eq $MACVendor_Search)
+                    {
+                        $Vendor = $MAC_VendorEntry."Organization Name"
+
+                        break # Don't show multiple results
+                    }
+                }
+            }                    
+
+            # Built new custom PSObject
+            $Result_Vendor_Assigned = New-Object -TypeName PSObject
+            Add-Member -InputObject $Result_Vendor_Assigned -MemberType NoteProperty -Name IPv4Address -Value $Job_Result.IPv4Address        
+            if($ResolveDNS) { 
+            Add-Member -InputObject $Result_Vendor_Assigned -MemberType NoteProperty -Name Hostname -Value $Job_Result.Hostname }        
+            Add-Member -InputObject $Result_Vendor_Assigned -MemberType NoteProperty -Name MAC -Value $Job_Result.MAC   
+            Add-Member -InputObject $Result_Vendor_Assigned -MemberType NoteProperty -Name Vendor  -Value $Vendor   
+            Add-Member -InputObject $Result_Vendor_Assigned -MemberType NoteProperty -Name Status -Value $Job_Result.Status		
+            
+            # Add it to an array
+            $Results_Vendor_Assigned += $Result_Vendor_Assigned
+        }        
+
+        Write-Host "[" -ForegroundColor Gray -NoNewline; Write-Host "Done" -ForegroundColor Green -NoNewline; Write-Host "]" -ForegroundColor Gray	
+    }
 }
 
 End {  
+    # If no XML-File to assign service with port... only show open ports  
+    if($AssignMACtoVendorList) 
+    { 
+        $Results = $Results_Vendor_Assigned 
+    } 
+    else 
+    { 
+        $Results = $Jop_Results 
+    }
+
     # Time when the Script finished
     $EndTime = Get-Date
 
@@ -248,8 +378,8 @@ End {
         
     # Some User-Output with Device UP/Down and execution time
     Write-Host "`n+=-=-=-=-=-=-=-=-=-=-=-=-=  Result  =-=-=-=-=-=-=-=-=-=-=-=-=`n|"
+    Write-Host "|  IPs Scanned:`t`t$($Results.Count)"
     Write-Host "|  Devices Up:`t`t$(@($Results | Where-Object {($_.Status -eq "Up")}).Count)" 
-    Write-Host "|  Devices Down:`t$(@($Results | Where-Object {($_.Status -eq "Down")}).Count)"
     Write-Host "|`n+============================================================`n"
     Write-Host "Script duration:`t$ExecutionTimeMinutes Minutes $ExecutionTimeSeconds Seconds`n" -ForegroundColor Yellow
     Write-Host "Script ($ScriptFileName) exit at $EndTime`n" -ForegroundColor Green

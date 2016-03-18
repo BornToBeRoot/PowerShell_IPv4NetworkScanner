@@ -14,6 +14,8 @@ You can modify the threads at the same time, the wait time if all threads are bu
   
 If all IPs are finished scanning, the script returns a custom PowerShell object which include IP-Address, Hostname (with FQDN) and the Status (Up or Down). You can easily process this PSObject in a foreach-loop like every other object in PowerShell.
 
+![Screenshot of Working Scanner and Result](https://github.com/BornToBeRoot/PowerShell_Async-IPScanner/blob/master/Screenshots/Working_and_Result.png?raw=true)
+
 ## Syntax
 
 ```powershell
