@@ -1,6 +1,6 @@
 # PowerShell Async IPScanner
 
-Powerful asynchronous IP-Scanner which returns a custom PowerShell-Object with basic informations about the scanned IP-Range include IP-Address, Hostname (with FQDN) and Status.
+Powerful asynchronous IP-Scanner which returns a custom PowerShell-Object with basic informations about the scanned IP-Range include IP-Address, Hostname (with FQDN), MAC and Status.
 
 ## Description
 
@@ -12,7 +12,7 @@ This Script can scan every IP-Range you want. To do this, just enter a Start IP-
 
 You can modify the threads at the same time, the wait time if all threads are busy and the tries for each IP in the parameter (use Get-Help for more details).
   
-If all IPs are finished scanning, the script returns a custom PowerShell object which include IP-Address, Hostname (with FQDN) and the Status (Up or Down). You can easily process this PSObject in a foreach-loop like every other object in PowerShell.
+If all IPs are finished scanning, the script returns a custom PowerShell object which include IP-Address, Hostname (with FQDN), MAC (with Vendor) and the Status (Up or Down). You can easily process this PSObject in a foreach-loop like every other object in PowerShell.
 
 ![Screenshot of Working Scanner and Result](https://github.com/BornToBeRoot/PowerShell_Async-IPScanner/blob/master/Screenshots/Working_and_Result.png?raw=true)
 
