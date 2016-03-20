@@ -102,8 +102,7 @@ Begin{
     
     if($UpdateListFromIEEE)
     {
-        try
-        {
+        try{
             Write-Host "Updating IEEE Standards Registration Authority from IEEE.org...`t" -ForegroundColor Gray -NoNewline
             
             # Save file before download a new version     
@@ -123,8 +122,7 @@ Begin{
 
             Write-Host "OK" -ForegroundColor Green
         }
-        catch
-        {
+        catch{
             Write-Host "Restore"
             # On  error: cleanup downloaded file and restore backup
             if([System.IO.File]::Exists($CSV_MACVendorList_Path))
