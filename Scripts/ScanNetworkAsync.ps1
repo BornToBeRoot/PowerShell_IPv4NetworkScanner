@@ -79,8 +79,13 @@ Param(
         HelpMessage='Get MAC-Address from IP-Address (Only work in the same subnet) (Default=Disabled)')]  
     [switch]$GetMAC,
 
+	[Parameter(
+		Position=7,
+		HelpMessage='Try to get extendend informations like IPv6Address, BufferSize, ResponseTime and TTL')]
+	[switch]$ExtendedInformations,
+
     [Parameter(
-        Position=7,
+        Position=8,
         HelpMessage='Update IEEE Standards Registration Authority from IEEE.org (https://standards.ieee.org/develop/regauth/oui/oui.csv)')]
     [switch]$UpdateListFromIEEE  
 )
@@ -203,12 +208,22 @@ Process{
         $IncludeInactive = $args[2]
         $ResolveDNS = $args[3]
         $GetMac = $args[4]
-                  
+		$ExtendedInformations = $args[5]		
+		
         # Test if device is available
-        if(Test-Connection -ComputerName $IPv4Address -Count $Tries -Quiet) { $Status = "Up" } else { $Status = "Down" }	
-      
+        $Status = [String]::Empty
+
+		if(Test-Connection -ComputerName $IPv4Address -Count $Tries -Quiet) 
+		{ 
+			$Status = "Up" 	
+		} 
+		else 
+		{ 
+			$Status = "Down" 
+		}	     		
+
         # Resolve DNS
-        $Hostname = [String]::Empty          
+		$Hostname = [String]::Empty     
 
         if($ResolveDNS -and ($Status -eq "Up" -or $IncludeInactive))
         {   	
@@ -219,8 +234,8 @@ Process{
      	}
      
         # Get MAC-Address
-        $MAC = [String]::Empty 
-        
+		$MAC = [String]::Empty 
+
         if($GetMAC -and ($Status -eq "Up"))
         {
             $Arp_Result = (arp -a ).ToUpper()
@@ -242,18 +257,46 @@ Process{
                 catch { } # No MAC   
             }     
         }
-        
+
+		# Get extended informations
+		$IPv6Address = [String]::Empty 
+		$BufferSize = [String]::Empty 
+		$ResponseTime = [String]::Empty 
+		$ResponseTimeToLive = [String]::Empty 
+
+        if($ExtendedInformations)
+		{
+			try {
+				$ExtendedInformations = (Test-Connection -ComputerName $IPv4Address -Count 1 | Select-Object IPV6Address, BufferSize, ResponseTime, ResponseTimeToLive)
+				
+				$IPv6Address = $ExtendedInformations.IPV6Address
+				$BufferSize =  $ExtendedInformations.BufferSize
+				$ResponseTime = $ExtendedInformations.ResponseTime 
+				$TTL = $ExtendedInformations.ResponseTimeToLive 
+			}
+			catch {} # Failed to get extended informations			
+		}
+
         # Built custom PSObject
-		$Result = New-Object -TypeName PSObject        
-        Add-Member -InputObject $Result -MemberType NoteProperty -Name IPv4Address -Value $IPv4Address        
-        if($ResolveDNS) { 
+		$Result = New-Object -TypeName PSObject   
+        Add-Member -InputObject $Result -MemberType NoteProperty -Name IPv4Address -Value $IPv4Address
+		if($ResolveDNS) 
+		{ 
             Add-Member -InputObject $Result -MemberType NoteProperty -Name Hostname -Value $Hostname 
-		}		        
-        if($GetMAC) { 
+		}
+		if($GetMAC) 
+		{ 
             Add-Member -InputObject $Result -MemberType NoteProperty -Name MAC -Value $MAC 
-		}       
-        Add-Member -InputObject $Result -MemberType NoteProperty -Name Status -Value $Status		
-        return $Result      
+		}
+		if($ExtendedInformations)
+		{
+			Add-Member -InputObject $Result -MemberType NoteProperty -Name IPv6Address -Value $IPv6Address
+			Add-Member -InputObject $Result -MemberType NoteProperty -Name BufferSize -Value $BufferSize
+			Add-Member -InputObject $Result -MemberType NoteProperty -Name ResponseTime -Value $ResponseTime
+			Add-Member -InputObject $Result -MemberType NoteProperty -Name TTL -Value $TTL
+		}
+        Add-Member -InputObject $Result -MemberType NoteProperty -Name Status -Value $Status	
+		return $Result      
     }            
         
 	# Setting up runspaces
@@ -275,7 +318,7 @@ Process{
         if($IPRange_Int64 -gt 0) { $Progress_Percent = (($i - $StartIPAddress_Int64) / $IPRange_Int64) * 100 } else { $Progress_Percent = 100 }
         Write-Progress -Activity "Setting up jobs..." -Id 1 -Status "Current IP-Address: $IPv4Address" -PercentComplete ($Progress_Percent) 
 						 
-        $Job = [System.Management.Automation.PowerShell]::Create().AddScript($ScriptBlock).AddArgument($IPv4Address).AddArgument($Tries).AddArgument($IncludeInactive).AddArgument($ResolveDNS).AddArgument($GetMAC)
+        $Job = [System.Management.Automation.PowerShell]::Create().AddScript($ScriptBlock).AddArgument($IPv4Address).AddArgument($Tries).AddArgument($IncludeInactive).AddArgument($ResolveDNS).AddArgument($GetMAC).AddArgument($ExtendedInformations)
         $Job.RunspacePool = $RunspacePool
         $Jobs += New-Object PSObject -Property @{
             RunNum = $i - $StartIPAddress_Int64
@@ -345,13 +388,22 @@ Process{
 
             # Built new custom PSObject
             $Result_Vendor_Assigned = New-Object -TypeName PSObject
-            Add-Member -InputObject $Result_Vendor_Assigned -MemberType NoteProperty -Name IPv4Address -Value $Job_Result.IPv4Address        
-            if($ResolveDNS) { 
-            Add-Member -InputObject $Result_Vendor_Assigned -MemberType NoteProperty -Name Hostname -Value $Job_Result.Hostname }        
-            Add-Member -InputObject $Result_Vendor_Assigned -MemberType NoteProperty -Name MAC -Value $Job_Result.MAC   
+            Add-Member -InputObject $Result_Vendor_Assigned -MemberType NoteProperty -Name IPv4Address -Value $Job_Result.IPv4Address   
+			if($ResolveDNS) 
+			{ 
+				Add-Member -InputObject $Result_Vendor_Assigned -MemberType NoteProperty -Name Hostname -Value $Job_Result.Hostname 
+			}    
+			Add-Member -InputObject $Result_Vendor_Assigned -MemberType NoteProperty -Name MAC -Value $Job_Result.MAC   
             Add-Member -InputObject $Result_Vendor_Assigned -MemberType NoteProperty -Name Vendor  -Value $Vendor   
-            Add-Member -InputObject $Result_Vendor_Assigned -MemberType NoteProperty -Name Status -Value $Job_Result.Status		
-            
+			if($ExtendedInformations) 
+			{		
+				Add-Member -InputObject $Result_Vendor_Assigned -MemberType NoteProperty -Name IPv6Address -Value $Job_Result.IPv6Address
+				Add-Member -InputObject $Result_Vendor_Assigned -MemberType NoteProperty -Name BufferSize -Value $Job_Result.BufferSize
+				Add-Member -InputObject $Result_Vendor_Assigned -MemberType NoteProperty -Name ResponseTime -Value $Job_Result.ResponseTime
+				Add-Member -InputObject $Result_Vendor_Assigned -MemberType NoteProperty -Name TTL -Value $Job_Result.TTL
+            }
+			Add-Member -InputObject $Result_Vendor_Assigned -MemberType NoteProperty -Name Status -Value $Job_Result.Status	
+
             # Add it to an array
             $Results_Vendor_Assigned += $Result_Vendor_Assigned
         }        
