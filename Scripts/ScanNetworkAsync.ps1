@@ -309,8 +309,11 @@ Process{
     foreach ($Job in $Jobs)
     {
         $Jop_Results += $Job.Pipe.EndInvoke($Job.Result)
+		$Job.Pipe.Dispose()
     }
 	
+	$RunspacePool.Close()
+		
     Write-Host "[" -ForegroundColor Gray -NoNewline; Write-Host "Done" -ForegroundColor Green -NoNewline; Write-Host "]" -ForegroundColor Gray	
 
     if($AssignMACtoVendorList)
