@@ -53,7 +53,7 @@ Disable DNS resolving
 Get extended informations (and MAC)
 
 ```powershell
-\ScanNetworkAsync.ps1 -StartIPAddress 172.16.0.1 -EndIPAddress 172.16.1.254 -GetMAC -ExtendedInformations
+.\ScanNetworkAsync.ps1 -StartIPAddress 172.16.0.1 -EndIPAddress 172.16.1.254 -GetMAC -ExtendedInformations
 ```
 
 ## Output
