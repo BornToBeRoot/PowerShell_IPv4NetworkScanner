@@ -122,8 +122,7 @@ Begin{
 
             Write-Host "OK" -ForegroundColor Green
         }
-        catch{
-            Write-Host "Restore"
+        catch{            
             # On  error: cleanup downloaded file and restore backup
             if([System.IO.File]::Exists($CSV_MACVendorList_Path))
             {
@@ -161,7 +160,7 @@ Begin{
     # Published under the MS-LPL license you can fin here:          https://www.openhub.net/licenses/mslpl
     function IPtoInt64 () { 
         param ($IPAddr) 
- 
+     
         $Octets = $IPAddr.split(".") 
         return [long]([long]$Octets[0]*16777216 +[long]$Octets[1]*65536 +[long]$Octets[2]*256 +[long]$Octets[3]) 
     } 
@@ -170,7 +169,7 @@ Begin{
         param ([long]$Int) 
 
         return (([System.Math]::Truncate($Int/16777216)).ToString() + "." + ([System.Math]::Truncate(($Int%16777216)/65536)).tostring() + "." + ([System.Math]::Truncate(($int%65536)/256)).ToString() + "." + ([System.Math]::Truncate($int%256)).ToString())
-    }
+    }			
     ### - - - - - - - - - - - - - - - ###
 
     $StartIPAddress_Int64 = IPtoInt64 -IPAddr $StartIPAddress.ToString()
@@ -224,13 +223,13 @@ Process{
         
         if($GetMAC -and ($Status -eq "Up"))
         {
-            $Arp_Result = arp -a 
-
-            foreach($Line in $Arp_Result)
+            $Arp_Result = (arp -a ).ToUpper()
+			           
+			foreach($Line in $Arp_Result)
             {
                 if($Line.TrimStart().StartsWith($IPv4Address))
                 {
-                    $MAC = [String]([Regex]::Matches($Line.ToUpper(), "([0-9A-F][0-9A-F]-){5}([0-9A-F][0-9A-F])")) 
+					$MAC = [Regex]::Matches($Line,"([0-9A-F][0-9A-F]-){5}([0-9A-F][0-9A-F])").Value
                 }
             }
 
@@ -238,7 +237,7 @@ Process{
             {
                 try {              
                     $nbtstat_result = nbtstat -A $IPv4Address | Select-String "MAC"
-                    $MAC = [String]([Regex]::Matches($nbtstat_result, "([0-9A-F][0-9A-F]-){5}([0-9A-F][0-9A-F])")) 
+                    $MAC = [Regex]::Matches($nbtstat_result, "([0-9A-F][0-9A-F]-){5}([0-9A-F][0-9A-F])").Value
                 }  
                 catch { } # No MAC   
             }     
@@ -248,9 +247,11 @@ Process{
 		$Result = New-Object -TypeName PSObject        
         Add-Member -InputObject $Result -MemberType NoteProperty -Name IPv4Address -Value $IPv4Address        
         if($ResolveDNS) { 
-            Add-Member -InputObject $Result -MemberType NoteProperty -Name Hostname -Value $Hostname }        
+            Add-Member -InputObject $Result -MemberType NoteProperty -Name Hostname -Value $Hostname 
+		}		        
         if($GetMAC) { 
-            Add-Member -InputObject $Result -MemberType NoteProperty -Name MAC -Value $MAC }       
+            Add-Member -InputObject $Result -MemberType NoteProperty -Name MAC -Value $MAC 
+		}       
         Add-Member -InputObject $Result -MemberType NoteProperty -Name Status -Value $Status		
         return $Result      
     }            
@@ -383,5 +384,12 @@ End {
     Write-Host "Script ($ScriptFileName) exit at $EndTime`n" -ForegroundColor Green
             
     # Return custom psobject with network informations
-    if($IncludeInactive) { return $Results } else { return $Results | Where-Object {$_.Status -eq "Up"} } 
+    if($IncludeInactive) 
+	{ 
+		return $Results 
+	} 
+	else 
+	{ 
+		return $Results | Where-Object {$_.Status -eq "Up"} 
+	} 
 }
