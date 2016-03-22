@@ -4,7 +4,7 @@ Powerful asynchronous IP-Scanner which returns a custom PowerShell-Object with b
 
 ## Description
 
-I built this powerful asynchronous IP-Scanner, because every script i found on the Internet was very slow. Most of them do there job, but ping every IP/Host in sequence and/or no one could ping more than /24. This is Ok if you have a few host, but if you want to scan a large IP-Range, you waste a lot of time.
+I built this powerful asynchronous IP-Scanner, because every script i found on the Internet was very slow. Most of them do there job, but ping every IP/Host in sequence and/or no one could ping more than /24.
 
 In this script i work with the PowerShell RunspacePool , because PSJobs are to slow. 
 
@@ -14,7 +14,7 @@ You can modify the threads at the same time, the wait time if all threads are bu
   
 If all IPs are finished scanning, the script returns a custom PowerShell object which include IP-Address, Hostname (with FQDN) and the Status (Up or Down). If you use the parameter "-GetMAC" it also would return the MAC (with Vendor) and with the parameter "-ExtendedInformations" you can get the IPv6Address (if available), BufferSize, ResponseTime (ms) and TTL. You can easily process this PSObject in a foreach-loop like every other object in PowerShell.
 
-Maybe you also interested in my [asynchronous Port-Scanner](https://github.com/BornToBeRoot/PowerShell_Async-PortScanner)
+Maybe you are also interested in my [asynchronous Port-Scanner](https://github.com/BornToBeRoot/PowerShell_Async-PortScanner)
 
 ![Screenshot of Working Scanner and Result](https://github.com/BornToBeRoot/PowerShell_Async-IPScanner/blob/master/Images/Working_and_Result.png?raw=true)
 
@@ -32,25 +32,13 @@ Simple IP-Range Scan
 .\ScanNetworkAsync.ps1 -StartIPAddress 192.168.1.1 -EndIPAddress 192.168.1.200 
 ```
 
-Include inactive devices
-
-```powershell 
-.\ScanNetworkAsync.ps1 -StartIPAddress 172.16.0.1 -EndIPAddress 172.16.1.254 -IncludeInactive
-```
-
-Get MAC-Addresses (Only work if you are in the same Subnet)
+You may want to update the official "Registration Authority" from IEEE... Just add the parameter "-UpdateListFromIEEE".
 
 ```powershell
-.\ScanNetworkAsync.ps1 -StartIPAddress 192.168.10.1 -EndIPAddress 192.168.10.25 -GetMAC
+.\ScanNetworkAsync.ps1 -StartIPAddress 192.168.1.1 -EndIPAddress 192.168.1.200 -UpdateListFromIEEE
 ```
 
-Disable DNS resolving
-
-```powershell
-.\ScanNetworkAsync.ps1 -StartIPAddress 192.168.2.100 -EndIPAddress 192.168.2.254 -ResolveDNS:$false
-```
-
-Get extended informations (and MAC)
+Get extended informations and MAC-Address with vendor
 
 ```powershell
 .\ScanNetworkAsync.ps1 -StartIPAddress 172.16.0.1 -EndIPAddress 172.16.1.254 -GetMAC -ExtendedInformations
