@@ -357,10 +357,9 @@ Process{
 	Write-Host "Waiting for jobs to complete...`t`t" -ForegroundColor Yellow -NoNewline
     
     Do {
-        Start-Sleep -Milliseconds 500
-                      
-        Write-Progress -Activity "Waiting for jobs to complete... ($($Threads - $($RunspacePool.GetAvailableRunspaces())) of $Threads threads running)" -Id 1 -PercentComplete (($Jobs.count - $($($Jobs | Where-Object {$_.Result.IsCompleted -eq $false}).Count)) / $Jobs.Count * 100) -Status "$(@($($Jobs | Where-Object {$_.Result.IsCompleted -eq $false})).Count) remaining..."                                
+        Write-Progress -Activity "Waiting for jobs to complete... ($($Threads - $($RunspacePool.GetAvailableRunspaces())) of $Threads threads running)" -Id 1 -PercentComplete (($Jobs.count - $($($Jobs | Where-Object {$_.Result.IsCompleted -eq $false}).Count)) / $Jobs.Count * 100) -Status "$(@($($Jobs | Where-Object {$_.Result.IsCompleted -eq $false})).Count) remaining..."
 
+		Start-Sleep -Milliseconds 500
     } While ($Jobs.Result.IsCompleted -contains $false)
     
     Write-Progress -Activity "All Jobs completed!" -Id 1 -Completed
