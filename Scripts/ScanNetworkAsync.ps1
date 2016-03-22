@@ -14,17 +14,23 @@
     .DESCRIPTION
     I built this powerful asynchronous IP-Scanner, because every script i found on the Internet was very slow. 
     Most of them do there job, but ping every IP/Host in sequence and/or no one could ping more than /24. 
-    This is Ok if you have a few host, but if you want to scan a large IP-Range, you need a lot of coffee :)
-
+    
     This Script can scan every IP-Range you want. To do this, just enter a Start IP-Address and an End IP-Address.
     You don't need a specific subnetmask (for example 172.16.1.47 to 172.16.2.5 would work).
     
-    You can modify the threads at the same time, the wait time if all threads are busy and the tries for each 
-    IP in the parameter (use Get-Help for more details).
-    
-    If all IPs are finished scanning, the script returns a custom PowerShell object which include IP-Address, 
-    Hostname (with FQDN) and the Status (Up or Down). You can easily process this PSObject in a foreach-loop 
-    like every other object in PowerShell.
+    In this script i work with the PowerShell RunspacePool , because PSJobs are to slow. 
+
+	This Script can scan every IP-Range you want. To do this, just enter a Start IP-Address and an End IP-Address. 
+	You don't need a specific subnetmask (for example 172.16.1.47 to 172.16.2.5 would work).
+
+	You can modify the threads at the same time, the wait time if all threads are busy and the tries for each IP 
+	in the parameter (use Get-Help for more details).
+  
+	If all IPs are finished scanning, the script returns a custom PowerShell object which include IP-Address, 
+	Hostname (with FQDN) and the Status (Up or Down). If you use the parameter "-GetMAC" it also would return 
+	the MAC (with Vendor) and with the parameter "-ExtendedInformations" you can get the IPv6Address (if available), 
+	BufferSize, ResponseTime (ms) and TTL. You can easily process this PSObject in a foreach-loop like every other 
+	object in PowerShell.
     
     If you found a bug or have some ideas to improve this script... Let me know. You find my Github profile in 
     the links below.
@@ -202,14 +208,15 @@ Begin{
 Process{ 
 	# Scriptblock that will run in runspaces (threads)...
     [System.Management.Automation.ScriptBlock]$ScriptBlock = {
-        # Parameters
-        $IPv4Address = $args[0]
-        $Tries = $args[1]
-        $IncludeInactive = $args[2]
-        $ResolveDNS = $args[3]
-        $GetMac = $args[4]
-		$ExtendedInformations = $args[5]		
-		
+        Param(
+			$IPv4Address,
+			$Tries,
+			$IncludeInactive,
+			$ResolveDNS,
+			$GetMac,
+			$ExtendedInformations
+		)
+
         # Test if device is available
         $Status = [String]::Empty
 
@@ -227,7 +234,7 @@ Process{
 
         if($ResolveDNS -and ($Status -eq "Up" -or $IncludeInactive))
         {   	
-		    try { 
+		    try{ 
                 $Hostname = ([System.Net.Dns]::GetHostEntry($IPv4Address).HostName)
             } 
             catch { } # No DNS                    
@@ -250,11 +257,11 @@ Process{
 
             if([String]::IsNullOrEmpty($MAC))
             {
-                try {              
-                    $nbtstat_result = nbtstat -A $IPv4Address | Select-String "MAC"
-                    $MAC = [Regex]::Matches($nbtstat_result, "([0-9A-F][0-9A-F]-){5}([0-9A-F][0-9A-F])").Value
+                try{              
+                    $Nbtstat_Result = nbtstat -A $IPv4Address | Select-String "MAC"
+                    $MAC = [Regex]::Matches($Nbtstat_Result, "([0-9A-F][0-9A-F]-){5}([0-9A-F][0-9A-F])").Value
                 }  
-                catch { } # No MAC   
+                catch{ } # No MAC   
             }     
         }
 
@@ -266,7 +273,7 @@ Process{
 
         if($ExtendedInformations)
 		{
-			try {
+			try{
 				$ExtendedInformations = (Test-Connection -ComputerName $IPv4Address -Count 1 | Select-Object IPV6Address, BufferSize, ResponseTime, ResponseTimeToLive)
 				
 				$IPv6Address = $ExtendedInformations.IPV6Address
@@ -274,7 +281,7 @@ Process{
 				$ResponseTime = $ExtendedInformations.ResponseTime 
 				$TTL = $ExtendedInformations.ResponseTimeToLive 
 			}
-			catch {} # Failed to get extended informations			
+			catch{} # Failed to get extended informations			
 		}
 
         # Built custom PSObject
@@ -299,8 +306,8 @@ Process{
 		return $Result      
     }            
         
-	# Setting up runspaces
-	Write-Host "Setting up Runspace-Pool...`t`t" -ForegroundColor Yellow -NoNewline
+	# Setting up RunspacePool
+	Write-Host "Setting up RunspacePool...`t`t" -ForegroundColor Yellow -NoNewline
 
     $RunspacePool = [System.Management.Automation.Runspaces.RunspaceFactory]::CreateRunspacePool(1, $Threads, $Host)
     $RunspacePool.Open()
@@ -315,10 +322,27 @@ Process{
     { 
         $IPv4Address = Int64toIP -Int $i                
 
-        if($IPRange_Int64 -gt 0) { $Progress_Percent = (($i - $StartIPAddress_Int64) / $IPRange_Int64) * 100 } else { $Progress_Percent = 100 }
+		$ScriptParams = @{
+			IPv4Address = $IPv4Address
+			Tries = $Tries
+			IncludeInactive = $IncludeInactive
+			ResolveDNS = $ResolveDNS
+			GetMac = $GetMac
+			ExtendedInformations = $ExtendedInformations
+		}       
+
+        if($IPRange_Int64 -gt 0) 
+		{ 
+			$Progress_Percent = (($i - $StartIPAddress_Int64) / $IPRange_Int64) * 100 
+		} 
+		else 
+		{ 
+			$Progress_Percent = 100 
+		}
+
         Write-Progress -Activity "Setting up jobs..." -Id 1 -Status "Current IP-Address: $IPv4Address" -PercentComplete ($Progress_Percent) 
 						 
-        $Job = [System.Management.Automation.PowerShell]::Create().AddScript($ScriptBlock).AddArgument($IPv4Address).AddArgument($Tries).AddArgument($IncludeInactive).AddArgument($ResolveDNS).AddArgument($GetMAC).AddArgument($ExtendedInformations)
+        $Job = [System.Management.Automation.PowerShell]::Create().AddScript($ScriptBlock).AddParameters($ScriptParams)
         $Job.RunspacePool = $RunspacePool
         $Jobs += New-Object PSObject -Property @{
             RunNum = $i - $StartIPAddress_Int64
@@ -346,12 +370,12 @@ Process{
 	Write-Host "Process results...`t`t`t" -ForegroundColor Yellow -NoNewline
     
     # Built global array
-    $Jop_Results = @()   
+    $Job_Results = @()   
     
     # Get results and fill the array
     foreach ($Job in $Jobs)
     {
-        $Jop_Results += $Job.Pipe.EndInvoke($Job.Result)
+        $Job_Results += $Job.Pipe.EndInvoke($Job.Result)
 		$Job.Pipe.Dispose()
     }
 	
@@ -361,13 +385,13 @@ Process{
 
     if($AssignMACtoVendorList)
     {
-        Write-Host "Assign Vendor to MAC-Address...`t`t" -ForegroundColor Yellow -NoNewline
+        Write-Host "Assign vendor to MAC-Address...`t`t" -ForegroundColor Yellow -NoNewline
 
         $MAC_VendorList =  Import-Csv -Path $CSV_MACVendorList_Path | Select-Object "Assignment", "Organization Name"
 
         $Results_Vendor_Assigned = @()
 
-        foreach($Job_Result in $Jop_Results)
+        foreach($Job_Result in $Job_Results)
         {
             $Vendor = [String]::Empty
 
@@ -420,7 +444,7 @@ End {
     } 
     else 
     { 
-        $Results = $Jop_Results 
+        $Results = $Job_Results 
     }
 
     # Time when the Script finished
