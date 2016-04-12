@@ -13,20 +13,18 @@
 
     .DESCRIPTION
     I built this powerful asynchronous IP-Scanner, because every script i found on the Internet was very slow. 
-    Most of them do there job, but ping every IP/Host in sequence and/or no one could ping more than /24. 
+    Most of them do there job, but ping every IP/Host in sequence and/or no one could ping more than a Subnet with 
+	more than /24 hosts. 
     
     This Script can scan every IP-Range you want. To do this, just enter a Start IP-Address and an End IP-Address.
     You don't need a specific subnetmask (for example 172.16.1.47 to 172.16.2.5 would work).
     
-    In this script i work with the PowerShell RunspacePool , because PSJobs are to slow. 
-
-	This Script can scan every IP-Range you want. To do this, just enter a Start IP-Address and an End IP-Address. 
-	You don't need a specific subnetmask (for example 172.16.1.47 to 172.16.2.5 would work).
+    I use the PowerShell-RunspacePool in this script, to run the ICMP requests, DNS resolve etc. asynchron.
 
 	You can modify the threads at the same time, the wait time if all threads are busy and the tries for each IP 
 	in the parameter (use Get-Help for more details).
   
-	If all IPs are finished scanning, the script returns a custom PowerShell object which include IP-Address, 
+	If all IPs are finished with scanning, the script returns a custom PowerShell-Object which include IP-Address, 
 	Hostname (with FQDN) and the Status (Up or Down). If you use the parameter "-GetMAC" it also would return 
 	the MAC (with Vendor) and with the parameter "-ExtendedInformations" you can get the IPv6Address (if available), 
 	BufferSize, ResponseTime (ms) and TTL. You can easily process this PSObject in a foreach-loop like every other 
@@ -67,7 +65,7 @@ Param(
 	
 	[Parameter(
 		Position=3,
-		HelpMessage='Set the maximum number of Test-Connection checks for each IP (Default=2)')]
+		HelpMessage='Set the maximum number of ICMP checks for each IP (Default=2)')]
 	[Int32]$Tries=2,
 
     [Parameter(
@@ -77,7 +75,7 @@ Param(
     
     [Parameter(
         Position=5,
-        HelpMessage='Enable or Disable DNS resolving (Default=Enabled')]
+        HelpMessage='Enable or disable DNS resolving (Default=Enabled')]
     [switch]$ResolveDNS=$true,
 
     [Parameter(
@@ -87,7 +85,7 @@ Param(
 
 	[Parameter(
 		Position=7,
-		HelpMessage='Try to get extendend informations like IPv6Address, BufferSize, ResponseTime and TTL')]
+		HelpMessage='Try to get extendend informations like BufferSize, ResponseTime and TTL')]
 	[switch]$ExtendedInformations,
 
     [Parameter(
@@ -100,32 +98,33 @@ Begin{
 	# Time when the script starts
     $StartTime = Get-Date   
 
-    # Script Path and FileName
+    # Script path and filename
     $Script_Startup_Path = Split-Path -Parent $MyInvocation.MyCommand.Path
     $ScriptFileName = $MyInvocation.MyCommand.Name      
    
     # IEEE ->  The Public Listing For IEEE Standards Registration Authority -> CSV-File
     $IEEE_MACVendorList_WebUri = "http://standards.ieee.org/develop/regauth/oui/oui.csv"
 
-    #Local path to MACVendorList
+    # Local path to MAC vendor list
     $CSV_MACVendorList_Path = "$Script_Startup_Path\IEEE_Standards_Registration_Authority.csv"
     $CSV_MACVendorList_BackupPath = "$Script_Startup_Path\IEEE_Standards_Registration_Authority.csv.bak"
     
+	# Integrated Update function for IEEE MAC vendor list
     if($UpdateListFromIEEE)
     {
         try{
             Write-Host "Updating IEEE Standards Registration Authority from IEEE.org...`t" -ForegroundColor Gray -NoNewline
             
-            # Save file before download a new version     
+            # Save file, before download a new version     
             if([System.IO.File]::Exists($CSV_MACVendorList_Path))
             {
                 Rename-Item -Path $CSV_MACVendorList_Path -NewName $CSV_MACVendorList_BackupPath
             }
 
-            # Download csv-file
+            # Download csv-file from IEEE
             Invoke-WebRequest -Uri $IEEE_MACVendorList_WebUri -OutFile $CSV_MACVendorList_Path
 
-            # Remove Backup if no error
+            # Remove Backup, if no error
             if([System.IO.File]::Exists($CSV_MACVendorList_BackupPath))
             {
                 Remove-Item -Path $CSV_MACVendorList_BackupPath
@@ -134,7 +133,7 @@ Begin{
             Write-Host "OK" -ForegroundColor Green
         }
         catch{            
-            # On  error: cleanup downloaded file and restore backup
+            # On error: cleanup downloaded file and restore backup
             if([System.IO.File]::Exists($CSV_MACVendorList_Path))
             {
                 Remove-Item -Path $CSV_MACVendorList_Path
@@ -169,11 +168,11 @@ Begin{
     
     # You can find this two functions in the following script:      https://gallery.technet.microsoft.com/scriptcenter/List-the-IP-addresses-in-a-60c5bb6b#content 
     # Published under the MS-LPL license you can fin here:          https://www.openhub.net/licenses/mslpl
-    function IPtoInt64 () { 
+    function IPtoInt64() { 
         param ($IPAddr) 
      
         $Octets = $IPAddr.split(".") 
-        return [long]([long]$Octets[0]*16777216 +[long]$Octets[1]*65536 +[long]$Octets[2]*256 +[long]$Octets[3]) 
+        return [long]([long]$Octets[0]*16777216 + [long]$Octets[1]*65536 + [long]$Octets[2]*256 + [long]$Octets[3]) 
     } 
     
     function Int64toIP() { 
@@ -184,7 +183,6 @@ Begin{
     ### - - - - - - - - - - - - - - - ###
 
     $StartIPAddress_Int64 = IPtoInt64 -IPAddr $StartIPAddress.ToString()
-    
     $EndIPAddress_Int64 = IPtoInt64 -IPAddr $EndIPAddress.ToString()
 
     $IPRange_Int64 = ($EndIPAddress_Int64 - $StartIPAddress_Int64)
@@ -196,7 +194,7 @@ Begin{
         exit
     }
 
-	# Some User-Output about the selected or default settings	
+	# Some User-Output (settings)
     Write-Host "`nScript ($ScriptFileName) started at $StartTime" -ForegroundColor Green
     Write-Host "`n+=-=-=-=-=-=-=-=-=-=-=-=-= Settings =-=-=-=-=-=-=-=-=-=-=-=-=`n|"
     Write-Host "|  IP-Range:`t`t$StartIPAddress - $EndIPAddress"
@@ -206,7 +204,7 @@ Begin{
 }
 
 Process{ 
-	# Scriptblock that will run in runspaces (threads)...
+	# Scriptblock --> will run in runspaces (threads)...
     [System.Management.Automation.ScriptBlock]$ScriptBlock = {
         Param(
 			$IPv4Address,
@@ -217,19 +215,41 @@ Process{
 			$ExtendedInformations
 		)
 
-        # Test if device is available
+        # +++ Send ICMP requests +++
         $Status = [String]::Empty
 
-		if(Test-Connection -ComputerName $IPv4Address -Count $Tries -Quiet) 
-		{ 
-			$Status = "Up" 	
-		} 
-		else 
-		{ 
-			$Status = "Down" 
-		}	     		
+		for($i = 0; $i -lt $Tries; i++)
+		{
+			try{
+				$PingObj = New-Object System.Net.NetworkInformation.Ping
+				
+				$Timeout = 1000
+				$Buffer = New-Object Byte[] 32
+				
+				$PingResult = $PingObj.Send($IPv4Address, $Timeout, $Buffer)
 
-        # Resolve DNS
+				if($PingResult.Status -eq "Success")
+				{
+					$Status = "Up"
+					
+					# Exit loop, if host is reachable
+					break
+				}
+				elseif($i -eq ($Tries -1))
+				{
+					$Status = "Down"
+				}
+			}
+			catch
+			{
+				$Status = "Down"
+
+				# Exit loop, if there is an error
+				break
+			}
+		}
+
+		# +++ Resolve DNS +++
 		$Hostname = [String]::Empty     
 
         if($ResolveDNS -and ($Status -eq "Up" -or $IncludeInactive))
@@ -240,7 +260,7 @@ Process{
             catch { } # No DNS                    
      	}
      
-        # Get MAC-Address
+        # +++ Get MAC-Address +++
 		$MAC = [String]::Empty 
 
         if($GetMAC -and ($Status -eq "Up"))
@@ -265,44 +285,45 @@ Process{
             }     
         }
 
-		# Get extended informations
-		$IPv6Address = [String]::Empty 
+		# Get extended informations (from PingResult)
 		$BufferSize = [String]::Empty 
 		$ResponseTime = [String]::Empty 
 		$ResponseTimeToLive = [String]::Empty 
 
-        if($ExtendedInformations)
+        if($ExtendedInformations -and ($Status -eq "Up"))
 		{
 			try{
-				$ExtendedInformations = (Test-Connection -ComputerName $IPv4Address -Count 1 | Select-Object IPV6Address, BufferSize, ResponseTime, ResponseTimeToLive)
-				
-				$IPv6Address = $ExtendedInformations.IPV6Address
-				$BufferSize =  $ExtendedInformations.BufferSize
-				$ResponseTime = $ExtendedInformations.ResponseTime 
-				$TTL = $ExtendedInformations.ResponseTimeToLive 
+				$BufferSize =  $PingResult.Buffer.Length
+				$ResponseTime = $PingResult.RoundtripTime
+				$TTL = $PingResult.Options.Ttl
 			}
 			catch{} # Failed to get extended informations			
-		}
-
-        # Built custom PSObject
+		}	
+		
+		# Built custom PSObject
 		$Result = New-Object -TypeName PSObject   
-        Add-Member -InputObject $Result -MemberType NoteProperty -Name IPv4Address -Value $IPv4Address
-		if($ResolveDNS) 
+        
+		Add-Member -InputObject $Result -MemberType NoteProperty -Name IPv4Address -Value $IPv4Address
+		
+		if($ResolveDNS -and ($Status -eq "Up" -or $IncludeInactive)) # Include DNS
 		{ 
             Add-Member -InputObject $Result -MemberType NoteProperty -Name Hostname -Value $Hostname 
 		}
-		if($GetMAC) 
+
+		if($GetMAC -and ($Status -eq "Up")) # Include MAC
 		{ 
             Add-Member -InputObject $Result -MemberType NoteProperty -Name MAC -Value $MAC 
 		}
-		if($ExtendedInformations)
+
+		if($ExtendedInformations -and ($Status -eq "Up")) # Include extended informations
 		{
-			Add-Member -InputObject $Result -MemberType NoteProperty -Name IPv6Address -Value $IPv6Address
 			Add-Member -InputObject $Result -MemberType NoteProperty -Name BufferSize -Value $BufferSize
 			Add-Member -InputObject $Result -MemberType NoteProperty -Name ResponseTime -Value $ResponseTime
 			Add-Member -InputObject $Result -MemberType NoteProperty -Name TTL -Value $TTL
 		}
+
         Add-Member -InputObject $Result -MemberType NoteProperty -Name Status -Value $Status	
+		
 		return $Result      
     }            
         
@@ -322,6 +343,7 @@ Process{
     { 
         $IPv4Address = Int64toIP -Int $i                
 
+		# Create hashtable to pass parameters
 		$ScriptParams = @{
 			IPv4Address = $IPv4Address
 			Tries = $Tries
@@ -331,6 +353,7 @@ Process{
 			ExtendedInformations = $ExtendedInformations
 		}       
 
+		# Calculate percent finished
         if($IPRange_Int64 -gt 0) 
 		{ 
 			$Progress_Percent = (($i - $StartIPAddress_Int64) / $IPRange_Int64) * 100 
@@ -342,6 +365,7 @@ Process{
 
         Write-Progress -Activity "Setting up jobs..." -Id 1 -Status "Current IP-Address: $IPv4Address" -PercentComplete ($Progress_Percent) 
 						 
+		# Create job
         $Job = [System.Management.Automation.PowerShell]::Create().AddScript($ScriptBlock).AddParameters($ScriptParams)
         $Job.RunspacePool = $RunspacePool
         $Jobs += New-Object PSObject -Property @{
@@ -382,6 +406,7 @@ Process{
 		
     Write-Host "[" -ForegroundColor Gray -NoNewline; Write-Host "Done" -ForegroundColor Green -NoNewline; Write-Host "]" -ForegroundColor Gray	
 
+	# Process results and assign vendor to mac
     if($AssignMACtoVendorList)
     {
         Write-Host "Assign vendor to MAC-Address...`t`t" -ForegroundColor Yellow -NoNewline
@@ -412,22 +437,25 @@ Process{
             # Built new custom PSObject
             $Result_Vendor_Assigned = New-Object -TypeName PSObject
             Add-Member -InputObject $Result_Vendor_Assigned -MemberType NoteProperty -Name IPv4Address -Value $Job_Result.IPv4Address   
-			if($ResolveDNS) 
+
+			if($ResolveDNS) # Include DNS
 			{ 
 				Add-Member -InputObject $Result_Vendor_Assigned -MemberType NoteProperty -Name Hostname -Value $Job_Result.Hostname 
 			}    
+
 			Add-Member -InputObject $Result_Vendor_Assigned -MemberType NoteProperty -Name MAC -Value $Job_Result.MAC   
             Add-Member -InputObject $Result_Vendor_Assigned -MemberType NoteProperty -Name Vendor  -Value $Vendor   
-			if($ExtendedInformations) 
+
+			if($ExtendedInformations) # Include extended informations
 			{		
-				Add-Member -InputObject $Result_Vendor_Assigned -MemberType NoteProperty -Name IPv6Address -Value $Job_Result.IPv6Address
 				Add-Member -InputObject $Result_Vendor_Assigned -MemberType NoteProperty -Name BufferSize -Value $Job_Result.BufferSize
 				Add-Member -InputObject $Result_Vendor_Assigned -MemberType NoteProperty -Name ResponseTime -Value $Job_Result.ResponseTime
 				Add-Member -InputObject $Result_Vendor_Assigned -MemberType NoteProperty -Name TTL -Value $Job_Result.TTL
             }
+
 			Add-Member -InputObject $Result_Vendor_Assigned -MemberType NoteProperty -Name Status -Value $Job_Result.Status	
 
-            # Add it to an array
+            # Add new object to array
             $Results_Vendor_Assigned += $Result_Vendor_Assigned
         }        
 
@@ -436,7 +464,7 @@ Process{
 }
 
 End {  
-    # If no XML-File to assign service with port... only show open ports  
+    # If no XML-File to assign, return PSObject without Vendor
     if($AssignMACtoVendorList) 
     { 
         $Results = $Results_Vendor_Assigned 
