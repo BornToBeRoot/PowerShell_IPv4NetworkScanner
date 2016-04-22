@@ -16,7 +16,7 @@ If all IPs are finished with scanning, the script returns a custom PowerShell-Ob
 
 Maybe you are also interested in my [asynchronous Port-Scanner](https://github.com/BornToBeRoot/PowerShell_Async-PortScanner)
 
-![Screenshot of Working Scanner and Result](https://github.com/BornToBeRoot/PowerShell_Async-IPScanner/blob/master/Doku/ScanNetworkAsync_Result.png?raw=true)
+![Screenshot of Working Scanner and Result](https://github.com/BornToBeRoot/PowerShell_Async-IPScanner/blob/master/Documentation/ScanNetworkAsync_Result.png?raw=true)
 
 ## Syntax
 
