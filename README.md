@@ -1,6 +1,6 @@
 # IPv4-Scanner
 
-Powerful asynchronus IPv4-Scanner.
+Powerful asynchronus IPv4-Scanner for PowerShell.
 
 ## Description
 
