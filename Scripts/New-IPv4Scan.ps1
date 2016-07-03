@@ -375,6 +375,40 @@ Begin{
 
         }
     }  
+
+    # Assign vendor to MAC
+    function AssignVendorToMAC
+    {
+        param(
+            [PSObject]$Result
+        )
+
+        Begin{
+
+        }
+
+        Process {
+            $Vendor = [String]::Empty
+
+            # Check if MAC is null or empty
+            if(-not([String]::IsNullOrEmpty($Result.MAC)))
+            {
+                # Split it, so we can search the vendor (XX-XX-XX-XX-XX-XX to XX-XX-XX)
+                $MACVendor_Search = $Job_Result.MAC.Replace("-","").Substring(0,6)
+
+                $Vendor = (($MAC_VendorList | Where-Object {$_.Assignment -eq $MACVendor_Search})[0])."Organization Name"
+            }
+
+            $NewResult = New-Object -TypeName PSObject -ArgumentList $Result
+            Add-Member -InputObject $NewResult -MemberType NoteProperty -Name Vendor -Value $Vendor
+
+            return $NewResult
+        }
+
+        End {
+
+        }
+    }
 }
 
 Process{
@@ -388,10 +422,13 @@ Process{
         Write-Host 'No CSV-File to assign vendor with MAC-Address found! Use the parameter "-UpdateList" to download the latest version from IEEE.org. This warning doesn`t affect the scanning procedure.' -ForegroundColor Yellow
     }    
 
-    # Check if it is possible to assign vendor to MAC
+    # Check if it is possible to assign vendor to MAC and import CSV-File 
     if(($EnableMACResolving.IsPresent) -and ([System.IO.File]::Exists($CSV_MACVendorList_Path)))
     {
         $AssignVendorToMAC = $true
+
+        # Import the CSV-File
+        $MAC_VendorList = Import-Csv -Path $CSV_MACVendorList_Path | Select-Object "Assignment", "Organization Name"
     }
     else 
     {
@@ -429,8 +466,7 @@ Process{
     # Calculate IPs to scan (range)
     $IPsToScan = ($EndIPv4Address_Int64 - $StartIPv4Address_Int64)
     
-    Write-Verbose "Scanning range from $StartIPv4Address to $EndIPv4Address"
-    Write-Verbose "$IPsToScan IP(s) to check"
+    Write-Verbose "Scanning range from $StartIPv4Address to $EndIPv4Address ($($IPsToScan + 1) IPs)"
     Write-Verbose "Running with max $Threads threads"
     Write-Verbose "ICMP checks per IP is set to $Tries"
     
@@ -555,7 +591,7 @@ Process{
     # Create RunspacePool and Jobs
     $RunspacePool = [System.Management.Automation.Runspaces.RunspaceFactory]::CreateRunspacePool(1, $Threads, $Host)
     $RunspacePool.Open()
-    $Jobs = @()
+    [System.Collections.ArrayList]$Jobs = @()
 
     Write-Verbose "Setting up Jobs..."
 
@@ -575,97 +611,76 @@ Process{
             IncludeInactive = $IncludeInactive
 		}       
 
-		# Fix Bug when scanning only 1 IP
-        if($IPsToScan -gt 0) 
-        { 
+		# Catch when trying to divide through zero
+        try {
 			$Progress_Percent = (($i - $StartIPv4Address_Int64) / $IPsToScan) * 100 
 		} 
-		else 
-		{ 
+		catch { 
 			$Progress_Percent = 100 
 		}
 
-        Write-Progress -Activity "Setting up jobs..." -Id 1 -Status "Current IP-Address: $IPv4Address" -PercentComplete ($Progress_Percent) 
+        Write-Progress -Activity "Setting up jobs..." -Id 1 -Status "Current IP-Address: $IPv4Address" -PercentComplete $Progress_Percent
 						 
 		# Create new job
         $Job = [System.Management.Automation.PowerShell]::Create().AddScript($ScriptBlock).AddParameters($ScriptParams)
         $Job.RunspacePool = $RunspacePool
-        $Jobs += New-Object PSObject -Property @{
+        
+        $JobObj = New-Object PSObject -Property @{
             RunNum = $i - $StartIPv4Address_Int64
             Pipe = $Job
             Result = $Job.BeginInvoke()
         }
+
+        # Add Job to collection
+        $Jobs.Add($JobObj) | Out-Null
     }
 
-    Write-Verbose "Waiting for jobs to complete..."
+    Write-Verbose "Waiting for jobs to complete... Starting to process results..."
     
-    # Wait until all jobs are complete / wait between each check 500 Milliseconds
+    # Process results (that are finished), while waiting for other jobs
     Do {
         Write-Progress -Activity "Waiting for jobs to complete... ($($Threads - $($RunspacePool.GetAvailableRunspaces())) of $Threads threads running)" -Id 1 -PercentComplete (($Jobs.count - $($($Jobs | Where-Object {$_.Result.IsCompleted -eq $false}).Count)) / $Jobs.Count * 100) -Status "$(@($($Jobs | Where-Object {$_.Result.IsCompleted -eq $false})).Count) remaining..."
 
-		Start-Sleep -Milliseconds 500
-    } While ($Jobs.Result.IsCompleted -contains $false)
+        # Get all complete jobs
+        $Jobs_ToProcess = $Jobs | Where {$_.Result.IsCompleted -eq $true}
 
-    Write-Verbose "Process results..."
-       
-    if($AssignVendorToMAC)
-    {
-        Write-Verbose "Assign vendor to MAC-Address..."
-
-        # Import the CSV-File
-        $MAC_VendorList = Import-Csv -Path $CSV_MACVendorList_Path | Select-Object "Assignment", "Organization Name"            
-
-        foreach($Job in $Jobs)
+        # If no jobs finished yet, wait 500 ms and try again
+        if($Jobs_ToProcess -eq $null)
         {
-            $Job_Result = $Job.Pipe.EndInvoke($Job.Result)
-            $Job.Pipe.Dispose()
+            Write-Verbose "No jobs completed, wait 500ms..."
 
-            if($Job_Result -ne $null)
-            {
-                $Vendor = [String]::Empty
-
-                # Check if MAC is null or empty
-                if(-not([String]::IsNullOrEmpty($Job_Result.MAC)))
-                {
-                    # Split it, so we can search the vendor (XX-XX-XX-XX-XX-XX to XX-XX-XX)
-                    $MACVendor_Search = $Job_Result.MAC.Replace("-","").Substring(0,6)
-
-                    # Search in the CSV-File
-                    foreach($MAC_VendorEntry in $MAC_VendorList)
-                    {
-                        if($MAC_VendorEntry.Assignment -eq $MACVendor_Search)
-                        {
-                            $Vendor = $MAC_VendorEntry."Organization Name"
-
-                            break # Don't show multiple results
-                        }
-                    }
-                }
-
-                # Add vendor to an exisiting PSObject
-                $Result = New-Object -TypeName PSObject -ArgumentList $Job_Result
-            	Add-Member -InputObject $Result -MemberType NoteProperty -Name Vendor -Value $Vendor
-
-                $Result                
-            }    
+            Start-Sleep -Milliseconds 500
+            continue
         }
-    }
-    else
-    {
-        foreach($Job in $Jobs)
-        {
+
+        Write-Verbose "Processing $($Jobs_ToProcess.Count) jobs..."
+
+        # Processing completed jobs
+        foreach($Job in $Jobs_ToProcess)
+        {       
+            # Get the result...     
             $Job_Result = $Job.Pipe.EndInvoke($Job.Result)
             $Job.Pipe.Dispose()
 
-            # The check is not necessary, but better safe than sorry
+            # Remove job from collection
+            $Jobs.Remove($Job)
+
+            # Check if result is null --> if not, return it
             if($Job_Result -ne $null)
-            {
-                $Job_Result
+            {        
+                if($AssignVendorToMAC)
+                {                   
+                    AssignVendorToMAC($Job_Result)
+                }
+                else 
+                {
+                    $Job_Result
+                }                            
             }
         }
-    }
-
-    Write-Verbose "Closing RunspacePool..."
+    } While ($Jobs.Count -gt 0)
+ 
+    Write-Verbose "Closing RunspacePool and free resources..."
 
     # Close the RunspacePool and free resources
     $RunspacePool.Close()

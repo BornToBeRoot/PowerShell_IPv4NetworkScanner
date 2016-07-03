@@ -8,7 +8,11 @@ This powerful asynchronus IPv4-Scanner for PowerShell allows you to scan every I
 
 The default result will contain the the IPv4-Address, Status (Up or Down) and the Hostname. Other values can be displayed via parameter (Try Get-Help for more details).
 
-![Screenshot of Working Scanner and Result](https://github.com/BornToBeRoot/PowerShell_IPv4-Scanner/blob/master/Documentation/New-IPv4Scan.png?raw=true "New-IPv4Scan")
+![Screenshot](https://github.com/BornToBeRoot/PowerShell_AsyncIPv4Scanner/blob/master/Documentation/New-IPv4Scan.png?raw=true "New-IPv4Scan")
+
+To reach the best possible performance, this script uses a [RunspacePool](https://msdn.microsoft.com/en-US/library/system.management.automation.runspaces.runspacepool(v=vs.85).aspx). As you can see in the following screenshot, the individual tasks are distributed across all cpu cores:
+
+[Screenshot](https://github.com/BornToBeRoot/PowerShell_AsyncIPv4Scanner/blob/master/Documentation/New-IPv4Scan_CPUusage.png?raw=true "CPU usage")
 
 Maybe you are also interested in my [asynchronous Port-Scanner](https://github.com/BornToBeRoot/PowerShell_Async-PortScanner)
 
