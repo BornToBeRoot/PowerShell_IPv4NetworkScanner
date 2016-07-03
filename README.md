@@ -14,8 +14,6 @@ To reach the best possible performance, this script uses a [RunspacePool](https:
 
 ![Screenshot](https://github.com/BornToBeRoot/PowerShell_AsyncIPv4Scanner/blob/master/Documentation/New-IPv4Scan_CPUusage.png?raw=true "CPU usage")
 
-
-
 ## Syntax
 
 ```powershell
@@ -53,5 +51,3 @@ IPv4Address    Status Hostname           MAC               Vendor
 192.168.178.1  Up     fritz.box          XX-XX-XX-XX-XX-XX AVM Audiovisuelles Marketing und Computersysteme GmbH
 192.168.178.22 Up     XXXXX-PC.fritz.box XX-XX-XX-XX-XX-XX ASRock Incorporation
 ```
-
-Maybe you are also interested in my [asynchronous Port-Scanner](https://github.com/BornToBeRoot/PowerShell_Async-PortScanner)
