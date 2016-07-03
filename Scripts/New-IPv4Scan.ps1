@@ -379,7 +379,7 @@ Begin{
 
 Process{
     # Check for Update
-    if($UpdateList)
+    if($UpdateList.IsPresent)
     {
         UpdateListFromIEEE
     }
