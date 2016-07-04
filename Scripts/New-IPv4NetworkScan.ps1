@@ -1,6 +1,6 @@
 ###############################################################################################################
 # Language     :  PowerShell 4.0
-# Filename     :  New-IPv4Scan.ps1 
+# Filename     :  New-IPv4NetworkScan.ps1 
 # Autor        :  BornToBeRoot (https://github.com/BornToBeRoot)
 # Description  :  Powerful asynchronus IPv4-Scanner
 # Repository   :  https://github.com/BornToBeRoot/PowerShell_AsyncIPv4Scanner
@@ -16,14 +16,14 @@
     The default result will contain the the IPv4-Address, Status (Up or Down) and the Hostname. Other values can be displayed via parameter (Try Get-Help for more details).
 
     .EXAMPLE
-    .\New-IPv4Scan.ps1 -StartIPv4Address 192.168.178.0 -EndIPv4Address 192.168.178.20
+    .\New-IPv4NetworkScan.ps1 -StartIPv4Address 192.168.178.0 -EndIPv4Address 192.168.178.20
 
     IPv4Address   Status Hostname
     -----------   ------ --------
     192.168.178.1 Up     fritz.box
 
     .EXAMPLE
-    .\New-IPv4Scan.ps1 -IPv4Address 192.168.178.0 -Mask 255.255.255.0 -DisableDNSResolving
+    .\New-IPv4NetworkScan.ps1 -IPv4Address 192.168.178.0 -Mask 255.255.255.0 -DisableDNSResolving
 
     IPv4Address    Status
     -----------    ------
@@ -31,7 +31,7 @@
     192.168.178.22 Up
 
     .EXAMPLE
-    .\New-IPv4Scan.ps1 -IPv4Address 192.168.178.0 -CIDR 25 -EnableMACResolving
+    .\New-IPv4NetworkScan.ps1 -IPv4Address 192.168.178.0 -CIDR 25 -EnableMACResolving
 
     IPv4Address    Status Hostname           MAC               Vendor
     -----------    ------ --------           ---               ------
