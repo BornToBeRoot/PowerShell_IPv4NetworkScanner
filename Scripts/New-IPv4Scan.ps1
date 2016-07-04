@@ -129,8 +129,8 @@ Begin{
     $IEEE_MACVendorList_WebUri = "http://standards.ieee.org/develop/regauth/oui/oui.csv"
 
     # MAC-Vendor list path
-    $CSV_MACVendorList_Path = "$PSScriptRoot\_IEEE_Standards_Registration_Authority.csv"
-    $CSV_MACVendorList_BackupPath = "$PSScriptRoot\_IEEE_Standards_Registration_Authority.csv.bak"
+    $CSV_MACVendorList_Path = "$PSScriptRoot\IEEE_Standards_Registration_Authority.csv"
+    $CSV_MACVendorList_BackupPath = "$PSScriptRoot\IEEE_Standards_Registration_Authority.csv.bak"
 
      # Function to update the list from IEEE (MAC-Vendor)
     function UpdateListFromIEEE
