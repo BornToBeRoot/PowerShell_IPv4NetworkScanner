@@ -3,7 +3,7 @@
 # Filename     :  New-IPv4NetworkScan.ps1 
 # Autor        :  BornToBeRoot (https://github.com/BornToBeRoot)
 # Description  :  Powerful asynchronus IPv4 Network Scanner
-# Repository   :  https://github.com/BornToBeRoot/PowerShell_AsyncIPv4NetworkScanner
+# Repository   :  https://github.com/BornToBeRoot/PowerShell_IPv4NetworkScanner
 ###############################################################################################################
 
 <#
@@ -39,7 +39,7 @@
     192.168.178.22 Up     XXXXX-PC.fritz.box XX-XX-XX-XX-XX-XX ASRock Incorporation
 
     .LINK
-    https://github.com/BornToBeRoot/PowerShell_AsyncIPv4NetworkScanner/blob/master/README.md
+    https://github.com/BornToBeRoot/PowerShell_IPv4NetworkScanner/blob/master/README.md
 #>
 
 [CmdletBinding(DefaultParameterSetName='Range')]
