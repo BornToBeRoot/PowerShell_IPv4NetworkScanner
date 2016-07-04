@@ -654,7 +654,7 @@ Process{
             continue
         }
 
-        Write-Verbose "Processing $($Jobs_ToProcess.Count) jobs..."
+        Write-Verbose "Processing $($Jobs_ToProcess.Count + 1) job(s)..."
 
         # Processing completed jobs
         foreach($Job in $Jobs_ToProcess)
@@ -665,7 +665,7 @@ Process{
 
             # Remove job from collection
             $Jobs.Remove($Job)
-
+           
             # Check if result is null --> if not, return it
             if($Job_Result -ne $null)
             {        
@@ -678,9 +678,10 @@ Process{
                     $Job_Result
                 }                            
             }
-        }
+        } 
+
     } While ($Jobs.Count -gt 0)
- 
+
     Write-Verbose "Closing RunspacePool and free resources..."
 
     # Close the RunspacePool and free resources
