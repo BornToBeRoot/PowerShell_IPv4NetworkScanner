@@ -395,8 +395,11 @@ Begin{
             {
                 # Split it, so we can search the vendor (XX-XX-XX-XX-XX-XX to XX-XX-XX)
                 $MACVendor_Search = $Job_Result.MAC.Replace("-","").Substring(0,6)
-
-                $Vendor = (($MAC_VendorList | Where-Object {$_.Assignment -eq $MACVendor_Search})[0])."Organization Name"
+                
+                try {
+                    $Vendor = (($MAC_VendorList | Where-Object {$_.Assignment -eq $MACVendor_Search})[0])."Organization Name"
+                }
+                catch {}
             }
 
             $NewResult = New-Object -TypeName PSObject -ArgumentList $Result
