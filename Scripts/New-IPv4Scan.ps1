@@ -636,7 +636,7 @@ Process{
         $Jobs.Add($JobObj) | Out-Null
     }
 
-    Write-Verbose "Waiting for jobs to complete... Starting to process results..."
+    Write-Verbose "Waiting for jobs to complete & starting to process results..."
     
     # Process results (that are finished), while waiting for other jobs
     Do {
