@@ -14,7 +14,7 @@ To reach the best possible performance, this script uses a [RunspacePool](https:
 
 ![Screenshot](https://github.com/BornToBeRoot/PowerShell_AsyncIPv4Scanner/blob/master/Documentation/New-IPv4Scan_CPUusage.png?raw=true "CPU usage")
 
-If you're looking for a module... Check out [this](https://github.com/BornToBeRoot/PowerShell)!
+If you are looking for a module... you can find it [here](https://github.com/BornToBeRoot/PowerShell)!
 
 ## Syntax
 
