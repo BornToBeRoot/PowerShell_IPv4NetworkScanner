@@ -176,6 +176,16 @@ Begin{
         }        
     }  
 
+     # Check for Update
+    if($UpdateList.IsPresent)
+    {
+        UpdateListFromIEEE
+    }
+    elseif(($EnableMACResolving.IsPresent) -and (-Not([System.IO.File]::Exists($CSV_MACVendorList_Path))))
+    {
+        Write-Host 'No CSV-File to assign vendor with MAC-Address found! Use the parameter "-UpdateList" to download the latest version from IEEE.org. This warning doesn`t affect the scanning procedure.' -ForegroundColor Yellow
+    }    
+    
     # Helper function to convert a subnetmask
     function Convert-Subnetmask 
     {
@@ -413,29 +423,6 @@ Begin{
 }
 
 Process{
-    # Check for Update
-    if($UpdateList.IsPresent)
-    {
-        UpdateListFromIEEE
-    }
-    elseif(($EnableMACResolving.IsPresent) -and (-Not([System.IO.File]::Exists($CSV_MACVendorList_Path))))
-    {
-        Write-Host 'No CSV-File to assign vendor with MAC-Address found! Use the parameter "-UpdateList" to download the latest version from IEEE.org. This warning doesn`t affect the scanning procedure.' -ForegroundColor Yellow
-    }    
-
-    # Check if it is possible to assign vendor to MAC and import CSV-File 
-    if(($EnableMACResolving.IsPresent) -and ([System.IO.File]::Exists($CSV_MACVendorList_Path)))
-    {
-        $AssignVendorToMAC = $true
-
-        # Import the CSV-File
-        $MAC_VendorList = Import-Csv -Path $CSV_MACVendorList_Path | Select-Object "Assignment", "Organization Name"
-    }
-    else 
-    {
-        $AssignVendorToMAC = $false
-    }
-
     # Calculate Subnet (Start and End IPv4-Address)
     if($PSCmdlet.ParameterSetName -eq 'CIDR' -or $PSCmdlet.ParameterSetName -eq 'Mask')
     {
@@ -470,6 +457,19 @@ Process{
     Write-Verbose "Scanning range from $StartIPv4Address to $EndIPv4Address ($($IPsToScan + 1) IPs)"
     Write-Verbose "Running with max $Threads threads"
     Write-Verbose "ICMP checks per IP is set to $Tries"
+
+    # Check if it is possible to assign vendor to MAC and import CSV-File 
+    if(($EnableMACResolving.IsPresent) -and ([System.IO.File]::Exists($CSV_MACVendorList_Path)))
+    {
+        $AssignVendorToMAC = $true
+
+        # Import the CSV-File
+        $MAC_VendorList = Import-Csv -Path $CSV_MACVendorList_Path | Select-Object "Assignment", "Organization Name"
+    }
+    else 
+    {
+        $AssignVendorToMAC = $false
+    }
     
     # Scriptblock --> will run in runspaces (threads)...
     [System.Management.Automation.ScriptBlock]$ScriptBlock = {
@@ -626,25 +626,25 @@ Process{
         $Job = [System.Management.Automation.PowerShell]::Create().AddScript($ScriptBlock).AddParameters($ScriptParams)
         $Job.RunspacePool = $RunspacePool
         
-        $JobObj = New-Object PSObject -Property @{
+        $JobObj = [pscustomobject] @{
             RunNum = $i - $StartIPv4Address_Int64
             Pipe = $Job
             Result = $Job.BeginInvoke()
         }
 
         # Add Job to collection
-        $Jobs.Add($JobObj) | Out-Null
+        [void]$Jobs.Add($JobObj)
     }
 
     Write-Verbose "Waiting for jobs to complete & starting to process results..."
-    
+
+    $Jobs_Total = $Jobs.Count
+
     # Process results (that are finished), while waiting for other jobs
     Do {
-        Write-Progress -Activity "Waiting for jobs to complete... ($($Threads - $($RunspacePool.GetAvailableRunspaces())) of $Threads threads running)" -Id 1 -PercentComplete (($Jobs.count - $($($Jobs | Where-Object {$_.Result.IsCompleted -eq $false}).Count)) / $Jobs.Count * 100) -Status "$(@($($Jobs | Where-Object {$_.Result.IsCompleted -eq $false})).Count) remaining..."
-
         # Get all complete jobs
-        $Jobs_ToProcess = $Jobs | Where {$_.Result.IsCompleted -eq $true}
-
+        $Jobs_ToProcess = $Jobs | Where-Object {$_.Result.IsCompleted}
+  
         # If no jobs finished yet, wait 500 ms and try again
         if($Jobs_ToProcess -eq $null)
         {
@@ -654,6 +654,16 @@ Process{
             continue
         }
 
+        # Catch when trying to divide through zero
+        try {
+            $Progress_Percent = 100 - ((($Jobs | Where-Object {$_.Result.IsCompleted -eq $false}).Count / $Jobs_Total) * 100) 
+        }
+        catch {
+            $Progress_Percent = 100
+        }
+
+        Write-Progress -Activity "Waiting for jobs to complete... ($($Threads - $($RunspacePool.GetAvailableRunspaces())) of $Threads threads running)" -Id 1 -PercentComplete $Progress_Percent -Status "$(@($($Jobs | Where-Object {$_.Result.IsCompleted -eq $false})).Count) remaining..."
+      
         Write-Verbose "Processing $($Jobs_ToProcess.Count + 1) job(s)..."
 
         # Processing completed jobs
