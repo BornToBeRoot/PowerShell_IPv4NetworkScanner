@@ -139,7 +139,7 @@ Begin{
         try{
             Write-Verbose "Create backup of the IEEE Standards Registration Authority list..."
             
-            # Save file, before download a new version     
+            # Backup file, before download a new version     
             if([System.IO.File]::Exists($CSV_MACVendorList_Path))
             {
                 Rename-Item -Path $CSV_MACVendorList_Path -NewName $CSV_MACVendorList_BackupPath
