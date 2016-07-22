@@ -42,7 +42,7 @@
     https://github.com/BornToBeRoot/PowerShell_IPv4NetworkScanner/blob/master/README.md
 #>
 
-[CmdletBinding(DefaultParameterSetName='Range')]
+[CmdletBinding(DefaultParameterSetName='CIDR')]
 Param(
     [Parameter(
         ParameterSetName='Range',
