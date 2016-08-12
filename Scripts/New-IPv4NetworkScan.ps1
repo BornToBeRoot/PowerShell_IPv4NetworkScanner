@@ -123,7 +123,7 @@ Param(
 )
 
 Begin{
-    Write-Verbose "Script started at $(Get-Date)"
+    Write-Verbose -Message "Script started at $(Get-Date)"
     
     # IEEE ->  The Public Listing For IEEE Standards Registration Authority -> CSV-File
     $IEEE_MACVendorList_WebUri = "http://standards.ieee.org/develop/regauth/oui/oui.csv"
@@ -137,7 +137,7 @@ Begin{
     {     
         # Try to download the MAC-Vendor list from IEEE
         try{
-            Write-Verbose "Create backup of the IEEE Standards Registration Authority list..."
+            Write-Verbose -Message "Create backup of the IEEE Standards Registration Authority list..."
             
             # Backup file, before download a new version     
             if([System.IO.File]::Exists($CSV_MACVendorList_Path))
@@ -145,12 +145,12 @@ Begin{
                 Rename-Item -Path $CSV_MACVendorList_Path -NewName $CSV_MACVendorList_BackupPath
             }
 
-            Write-Verbose "Updating IEEE Standards Registration Authority from IEEE.org..."
+            Write-Verbose -Message "Updating IEEE Standards Registration Authority from IEEE.org..."
 
             # Download csv-file from IEEE
             Invoke-WebRequest -Uri $IEEE_MACVendorList_WebUri -OutFile $CSV_MACVendorList_Path -ErrorAction Stop
 
-            Write-Verbose "Remove backup of the IEEE Standards Registration Authority list..."
+            Write-Verbose -Message "Remove backup of the IEEE Standards Registration Authority list..."
 
             # Remove Backup, if no error
             if([System.IO.File]::Exists($CSV_MACVendorList_BackupPath))
@@ -159,7 +159,7 @@ Begin{
             }            
         }
         catch{            
-            Write-Verbose "Cleanup downloaded file and restore backup..."
+            Write-Verbose -Message "Cleanup downloaded file and restore backup..."
 
             # On error: cleanup downloaded file and restore backup
             if([System.IO.File]::Exists($CSV_MACVendorList_Path))
@@ -224,12 +224,10 @@ Begin{
                 }               
             }
 
-            $Result = [pscustomobject] @{
+            [pscustomobject] @{
                 Mask = $Mask
                 CIDR = $CIDR
             }
-
-            return $Result
         }
 
         End {
@@ -277,12 +275,10 @@ Begin{
                 }      
             }
 
-            $Result = [pscustomobject] @{   
+            [pscustomobject] @{   
                 IPv4Address = $IPv4Address
                 Int64 = $Int64
             }
-
-            return $Result	
         }
 
         End {
@@ -362,14 +358,12 @@ Begin{
             $Hosts = ($AvailableIPs - 2)
                 
             # Build custom PSObject
-            $Result = [pscustomobject] @{
+            [pscustomobject] @{
                 NetworkID = $NetworkID
             	Broadcast = $Broadcast
             	IPs = $AvailableIPs
            	    Hosts = $Hosts
             }
-
-            return $Result
         }
 
         End{
@@ -407,7 +401,7 @@ Begin{
                 }                    
             }
 
-            $NewResult = [pscustomobject] @{
+            [pscustomobject] @{
                 IPv4Address = $Result.IPv4Address
                 Status = $Result.Status
                 Hostname = $Result.Hostname
@@ -417,8 +411,6 @@ Begin{
 				ResponseTime = $Result.ResponseTime
 				TTL = $Result.TTL
             }
-            
-            return $NewResult 
         }
 
         End {
@@ -435,7 +427,7 @@ Process{
     }
     elseif(($EnableMACResolving) -and (-Not([System.IO.File]::Exists($CSV_MACVendorList_Path))))
     {
-        Write-Host 'No CSV-File to assign vendor with MAC-Address found! Use the parameter "-UpdateList" to download the latest version from IEEE.org. This warning doesn`t affect the scanning procedure.' -ForegroundColor Yellow
+        Write-Warning -Message "No CSV-File to assign vendor with MAC-Address found! Use the parameter ""-UpdateList"" to download the latest version from IEEE.org. This warning doesn`t affect the scanning procedure."
     }   
     
     # Calculate Subnet (Start and End IPv4-Address)
@@ -462,16 +454,15 @@ Process{
     # Check if range is valid
     if($StartIPv4Address_Int64 -gt $EndIPv4Address_Int64)
     {
-        Write-Host "Invalid IP-Range... Check your input!" -ForegroundColor Red
-        return
+        Write-Error -Message "Invalid IP-Range... Check your input!" -Category InvalidArgument -ErrorAction Stop
     }
 
     # Calculate IPs to scan (range)
     $IPsToScan = ($EndIPv4Address_Int64 - $StartIPv4Address_Int64)
     
-    Write-Verbose "Scanning range from $StartIPv4Address to $EndIPv4Address ($($IPsToScan + 1) IPs)"
-    Write-Verbose "Running with max $Threads threads"
-    Write-Verbose "ICMP checks per IP is set to $Tries"
+    Write-Verbose -Message "Scanning range from $StartIPv4Address to $EndIPv4Address ($($IPsToScan + 1) IPs)"
+    Write-Verbose -Message "Running with max $Threads threads"
+    Write-Verbose -Message "ICMP checks per IP is set to $Tries"
 
     # Properties which are displayed in the output
     $PropertiesToDisplay = @()
@@ -621,14 +612,14 @@ Process{
         }
     } 
 
-    Write-Verbose "Setting up RunspacePool..."
+    Write-Verbose -Message "Setting up RunspacePool..."
 
     # Create RunspacePool and Jobs
     $RunspacePool = [System.Management.Automation.Runspaces.RunspaceFactory]::CreateRunspacePool(1, $Threads, $Host)
     $RunspacePool.Open()
     [System.Collections.ArrayList]$Jobs = @()
 
-    Write-Verbose "Setting up Jobs..."
+    Write-Verbose -Message "Setting up Jobs..."
 
     # Set up Jobs for each IP...
     for ($i = $StartIPv4Address_Int64; $i -le $EndIPv4Address_Int64; $i++) 
@@ -702,7 +693,7 @@ Process{
 
         Write-Progress -Activity "Waiting for jobs to complete... ($($Threads - $($RunspacePool.GetAvailableRunspaces())) of $Threads threads running)" -Id 1 -PercentComplete $Progress_Percent -Status "$Jobs_Remaining remaining..."
       
-        Write-Verbose "Processing $(if($Jobs_ToProcess.Count -eq $null){"1"}else{$Jobs_ToProcess.Count}) job(s)..."
+        Write-Verbose -Message "Processing $(if($Jobs_ToProcess.Count -eq $null){"1"}else{$Jobs_ToProcess.Count}) job(s)..."
 
         # Processing completed jobs
         foreach($Job in $Jobs_ToProcess)
@@ -730,13 +721,13 @@ Process{
 
     } While ($Jobs.Count -gt 0)
 
-    Write-Verbose "Closing RunspacePool and free resources..."
+    Write-Verbose -Message "Closing RunspacePool and free resources..."
 
     # Close the RunspacePool and free resources
     $RunspacePool.Close()
     $RunspacePool.Dispose()
 
-    Write-Verbose "Script finished at $(Get-Date)"
+    Write-Verbose -Message "Script finished at $(Get-Date)"
 }
 
 End{
