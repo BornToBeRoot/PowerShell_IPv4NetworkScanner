@@ -16,14 +16,14 @@
     The default result will contain the the IPv4-Address, Status (Up or Down) and the Hostname. Other values can be displayed via parameter.
 
     .EXAMPLE
-    .\New-IPv4NetworkScan.ps1 -StartIPv4Address 192.168.178.0 -EndIPv4Address 192.168.178.20
+    .\IPv4NetworkScan.ps1 -StartIPv4Address 192.168.178.0 -EndIPv4Address 192.168.178.20
 
     IPv4Address   Status Hostname
     -----------   ------ --------
     192.168.178.1 Up     fritz.box
 
     .EXAMPLE
-    .\New-IPv4NetworkScan.ps1 -IPv4Address 192.168.178.0 -Mask 255.255.255.0 -DisableDNSResolving
+    .\IPv4NetworkScan.ps1 -IPv4Address 192.168.178.0 -Mask 255.255.255.0 -DisableDNSResolving
 
     IPv4Address    Status
     -----------    ------
@@ -31,7 +31,7 @@
     192.168.178.22 Up
 
     .EXAMPLE
-    .\New-IPv4NetworkScan.ps1 -IPv4Address 192.168.178.0 -CIDR 25 -EnableMACResolving
+    .\IPv4NetworkScan.ps1 -IPv4Address 192.168.178.0 -CIDR 25 -EnableMACResolving
 
     IPv4Address    Status Hostname           MAC               Vendor
     -----------    ------ --------           ---               ------
