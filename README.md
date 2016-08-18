@@ -8,7 +8,7 @@ This powerful asynchronus IPv4 Network Scanner for PowerShell allows you to scan
 
 The default result will contain the the IPv4-Address, Status (Up or Down) and the Hostname. Other values can be displayed via parameter (Try Get-Help for more details).
 
-![Screenshot](Documentation/Images/IPv4NetworkScan.png?raw=true "New-IPv4NetworkScan")
+![Screenshot](Documentation/Images/IPv4NetworkScan.png?raw=true "IPv4NetworkScan")
 
 To reach the best possible performance, this script uses a [RunspacePool](https://msdn.microsoft.com/en-US/library/system.management.automation.runspaces.runspacepool(v=vs.85).aspx). As you can see in the following screenshot, the individual tasks are distributed across all cpu cores:
 
