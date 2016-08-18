@@ -8,11 +8,11 @@ This powerful asynchronus IPv4 Network Scanner for PowerShell allows you to scan
 
 The default result will contain the the IPv4-Address, Status (Up or Down) and the Hostname. Other values can be displayed via parameter (Try Get-Help for more details).
 
-![Screenshot](Documentation/Images/New-IPv4NetworkScan.png?raw=true "New-IPv4NetworkScan")
+![Screenshot](Documentation/Images/IPv4NetworkScan.png?raw=true "New-IPv4NetworkScan")
 
 To reach the best possible performance, this script uses a [RunspacePool](https://msdn.microsoft.com/en-US/library/system.management.automation.runspaces.runspacepool(v=vs.85).aspx). As you can see in the following screenshot, the individual tasks are distributed across all cpu cores:
 
-![Screenshot](Documentation/Images/New-IPv4NetworkScan_CPUusage.png?raw=true "CPU usage")
+![Screenshot](Documentation/Images/IPv4NetworkScan_CPUusage.png?raw=true "CPU usage")
 
 If you are looking for a module containing this script... you can find it [here](https://github.com/BornToBeRoot/PowerShell)!
 
@@ -21,17 +21,17 @@ Maybe you're also interested in my asynchronus [IPv4 Port Scanner](https://githu
 ## Syntax
 
 ```powershell
-.\New-IPv4NetworkScan.ps1 [-StartIPv4Address] <IPAddress> [-EndIPv4Address] <IPAddress> [[-Tries] <Int32>] [[-Threads] <Int32>] [[-DisableDNSResolving]] [[-EnableMACResolving]] [[-ExtendedInformations]] [[-IncludeInactive]] [[-UpdateList]] [<CommonParameters>]
+.\IPv4NetworkScan.ps1 [-StartIPv4Address] <IPAddress> [-EndIPv4Address] <IPAddress> [[-Tries] <Int32>] [[-Threads] <Int32>] [[-DisableDNSResolving]] [[-EnableMACResolving]] [[-ExtendedInformations]] [[-IncludeInactive]] [[-UpdateList]] [<CommonParameters>]
 
-.\New-IPv4NetworkScan.ps1 [-IPv4Address] <IPAddress> [-Mask] <String> [[-Tries] <Int32>] [[-Threads] <Int32>] [[-DisableDNSResolving]] [[-EnableMACResolving]] [[-ExtendedInformations]] [[-IncludeInactive]] [[-UpdateList]] [<CommonParameters>]
+.\IPv4NetworkScan.ps1 [-IPv4Address] <IPAddress> [-Mask] <String> [[-Tries] <Int32>] [[-Threads] <Int32>] [[-DisableDNSResolving]] [[-EnableMACResolving]] [[-ExtendedInformations]] [[-IncludeInactive]] [[-UpdateList]] [<CommonParameters>]
 
-.\New-IPv4NetworkScan.ps1 [-IPv4Address] <IPAddress> [-CIDR] <Int32> [[-Tries] <Int32>] [[-Threads] <Int32>] [[-DisableDNSResolving]] [[-EnableMACResolving]] [[-ExtendedInformations]] [[-IncludeInactive]] [[-UpdateList]] [<CommonParameters>]
+.\IPv4NetworkScan.ps1 [-IPv4Address] <IPAddress> [-CIDR] <Int32> [[-Tries] <Int32>] [[-Threads] <Int32>] [[-DisableDNSResolving]] [[-EnableMACResolving]] [[-ExtendedInformations]] [[-IncludeInactive]] [[-UpdateList]] [<CommonParameters>]
 ```
 
 ## Example
 
 ```powershell
-PS> .\New-IPv4NetworkScan.ps1 -StartIPv4Address 192.168.178.0 -EndIPv4Address 192.168.178.20
+PS> .\IPv4NetworkScan.ps1 -StartIPv4Address 192.168.178.0 -EndIPv4Address 192.168.178.20
 
 IPv4Address   Status Hostname
 -----------   ------ --------
@@ -39,7 +39,7 @@ IPv4Address   Status Hostname
 ```
 
 ```powershell
-PS> .\New-IPv4NetworkScan.ps1 -IPv4Address 192.168.178.0 -Mask 255.255.255.0 -DisableDNSResolving
+PS> .\IPv4NetworkScan.ps1 -IPv4Address 192.168.178.0 -Mask 255.255.255.0 -DisableDNSResolving
 
 IPv4Address    Status
 -----------    ------
@@ -48,7 +48,7 @@ IPv4Address    Status
 ```
 
 ```powershell
-PS> .\New-IPv4NetworkScan.ps1 -IPv4Address 192.168.178.0 -CIDR 25 -EnableMACResolving
+PS> .\IPv4NetworkScan.ps1 -IPv4Address 192.168.178.0 -CIDR 25 -EnableMACResolving
 
 IPv4Address    Status Hostname           MAC               Vendor
 -----------    ------ --------           ---               ------

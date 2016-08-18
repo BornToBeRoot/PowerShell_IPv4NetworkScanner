@@ -1,6 +1,6 @@
 ###############################################################################################################
 # Language     :  PowerShell 4.0
-# Filename     :  New-IPv4NetworkScan.ps1 
+# Filename     :  IPv4NetworkScan.ps1 
 # Autor        :  BornToBeRoot (https://github.com/BornToBeRoot)
 # Description  :  Powerful asynchronus IPv4 Network Scanner
 # Repository   :  https://github.com/BornToBeRoot/PowerShell_IPv4NetworkScanner
@@ -211,12 +211,12 @@ Begin{
                     
                     # Split into groups of 8 bits, convert to Ints, join up into a string
                     $Octets = $CIDR_Bits -split '(.{8})' -ne ''
-                    $Mask = ($Octets | foreach { [Convert]::ToInt32($_, 2) }) -join '.'
+                    $Mask = ($Octets | ForEach-Object { [Convert]::ToInt32($_, 2) }) -join '.'
                 }
 
                 "Mask" {
                     # Convert the numbers into 8 bit blocks, join them all together, count the 1
-                    $Octets = $Mask.ToString().Split(".") | foreach {[Convert]::ToString($_, 2)}
+                    $Octets = $Mask.ToString().Split(".") | ForEach-Object {[Convert]::ToString($_, 2)}
                     $CIDR_Bits = ($Octets -join "").TrimEnd("0")
 
                     # Count the "1" (111111111111111111111111 --> /24)                     
@@ -287,7 +287,7 @@ Begin{
     }
 
     # Helper function to create a new Subnet
-    function New-IPv4Subnet
+    function Get-IPv4Subnet
     {
         [CmdletBinding(DefaultParameterSetName='CIDR')]
         param(
@@ -440,7 +440,7 @@ Process{
         }
 
         # Create new subnet
-        $Subnet = New-IPv4Subnet -IPv4Address $IPv4Address -CIDR $CIDR
+        $Subnet = Get-IPv4Subnet -IPv4Address $IPv4Address -CIDR $CIDR
 
         # Assign Start and End IPv4-Address
         $StartIPv4Address = $Subnet.NetworkID
@@ -552,7 +552,7 @@ Process{
         # +++ Get MAC-Address +++
 		$MAC = [String]::Empty 
 
-        if(($EnableMACResolving) -and ($Status -eq "Up"))
+        if(($EnableMACResolving) -and (($Status -eq "Up") -or ($IncludeInactive)))
         {
             $Arp_Result = (arp -a ).ToUpper()
 			           
@@ -588,27 +588,26 @@ Process{
 				$ResponseTime = $PingResult.RoundtripTime
 				$TTL = $PingResult.Options.Ttl
 			}
-			catch{} # Failed to get extended informations
+			catch{ } # Failed to get extended informations
 		}	
 	
         # +++ Result +++
-        if($Status -eq "Up" -or $IncludeInactive)
+        
+        if(($Status -eq "Up") -or ($IncludeInactive))
         {
-            $Result = [pscustomobject] @{
+            [pscustomobject] @{
                 IPv4Address = $IPv4Address
                 Status = $Status
                 Hostname = $Hostname
                 MAC = $MAC   
-            	BufferSize = $BufferSize
-				ResponseTime = $ResponseTime
-				TTL = $TTL
+                BufferSize = $BufferSize
+			    ResponseTime = $ResponseTime
+			    TTL = $TTL
             }
-
-		    return $Result
-        }      
-        else 
+        }
+        else
         {
-            return $null
+            $null
         }
     } 
 
@@ -661,7 +660,7 @@ Process{
         [void]$Jobs.Add($JobObj)
     }
 
-    Write-Verbose "Waiting for jobs to complete & starting to process results..."
+    Write-Verbose -Message "Waiting for jobs to complete & starting to process results..."
 
     # Total jobs to calculate percent complete, because jobs are removed after they are processed
     $Jobs_Total = $Jobs.Count
@@ -672,9 +671,9 @@ Process{
         $Jobs_ToProcess = $Jobs | Where-Object {$_.Result.IsCompleted}
   
         # If no jobs finished yet, wait 500 ms and try again
-        if($Jobs_ToProcess -eq $null)
+        if($null -eq $Jobs_ToProcess)
         {
-            Write-Verbose "No jobs completed, wait 500ms..."
+            Write-Verbose -Message "No jobs completed, wait 500ms..."
 
             Start-Sleep -Milliseconds 500
             continue
@@ -693,7 +692,7 @@ Process{
 
         Write-Progress -Activity "Waiting for jobs to complete... ($($Threads - $($RunspacePool.GetAvailableRunspaces())) of $Threads threads running)" -Id 1 -PercentComplete $Progress_Percent -Status "$Jobs_Remaining remaining..."
       
-        Write-Verbose -Message "Processing $(if($Jobs_ToProcess.Count -eq $null){"1"}else{$Jobs_ToProcess.Count}) job(s)..."
+        Write-Verbose -Message "Processing $(if($null -eq $Jobs_ToProcess.Count){"1"}else{$Jobs_ToProcess.Count}) job(s)..."
 
         # Processing completed jobs
         foreach($Job in $Jobs_ToProcess)
@@ -705,8 +704,8 @@ Process{
             # Remove job from collection
             $Jobs.Remove($Job)
            
-            # Check if result is null --> if not, return it
-            if($Job_Result -ne $null)
+            # Check if result contains status
+            if($Job_Result.Status)
             {        
                 if($AssignVendorToMAC)
                 {                   
