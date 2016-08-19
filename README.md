@@ -28,7 +28,7 @@ Maybe you're also interested in my asynchronus [IPv4 Port Scanner](https://githu
 .\IPv4NetworkScan.ps1 [-IPv4Address] <IPAddress> [-CIDR] <Int32> [[-Tries] <Int32>] [[-Threads] <Int32>] [[-DisableDNSResolving]] [[-EnableMACResolving]] [[-ExtendedInformations]] [[-IncludeInactive]] [[-UpdateList]] [<CommonParameters>]
 ```
 
-## Example
+## Example 1
 
 ```powershell
 PS> .\IPv4NetworkScan.ps1 -StartIPv4Address 192.168.178.0 -EndIPv4Address 192.168.178.20
@@ -38,6 +38,8 @@ IPv4Address   Status Hostname
 192.168.178.1 Up     fritz.box
 ```
 
+## Example 2
+
 ```powershell
 PS> .\IPv4NetworkScan.ps1 -IPv4Address 192.168.178.0 -Mask 255.255.255.0 -DisableDNSResolving
 
@@ -46,6 +48,8 @@ IPv4Address    Status
 192.168.178.1  Up
 192.168.178.22 Up
 ```
+
+## Example 3
 
 ```powershell
 PS> .\IPv4NetworkScan.ps1 -IPv4Address 192.168.178.0 -CIDR 25 -EnableMACResolving
