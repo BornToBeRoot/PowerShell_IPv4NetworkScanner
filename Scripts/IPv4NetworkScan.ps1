@@ -485,7 +485,7 @@ Process{
 
         $PropertiesToDisplay += "Vendor"
        
-        $MAC_VendorList = Import-Csv -Path $CSV_MACVendorList_Path | Select-Object "Assignment", "Organization Name"
+        $MAC_VendorList = Import-Csv -Path $CSV_MACVendorList_Path | Select-Object -Property "Assignment", "Organization Name"
     }
     else 
     {
@@ -568,7 +568,7 @@ Process{
             if([String]::IsNullOrEmpty($MAC))
             {
                 try{              
-                    $Nbtstat_Result = nbtstat -A $IPv4Address | Select-String "MAC"
+                    $Nbtstat_Result = nbtstat -A $IPv4Address | Select-String -Pattern "MAC"
                     $MAC = [Regex]::Matches($Nbtstat_Result, "([0-9A-F][0-9A-F]-){5}([0-9A-F][0-9A-F])").Value
                 }  
                 catch{ } # No MAC   
@@ -668,7 +668,7 @@ Process{
     # Process results, while waiting for other jobs
     Do {
         # Get all jobs, which are completed
-        $Jobs_ToProcess = $Jobs | Where-Object {$_.Result.IsCompleted}
+        $Jobs_ToProcess = $Jobs | Where-Object -FilterScript {$_.Result.IsCompleted}
   
         # If no jobs finished yet, wait 500 ms and try again
         if($null -eq $Jobs_ToProcess)
@@ -680,7 +680,7 @@ Process{
         }
         
         # Get jobs, which are not complete yet
-        $Jobs_Remaining = ($Jobs | Where-Object {$_.Result.IsCompleted -eq $false}).Count
+        $Jobs_Remaining = ($Jobs | Where-Object -FilterScript {$_.Result.IsCompleted -eq $false}).Count
 
         # Catch when trying to divide through zero
         try {            
