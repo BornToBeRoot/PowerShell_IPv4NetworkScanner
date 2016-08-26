@@ -83,7 +83,16 @@ Param(
         Position=1,
         Mandatory=$true,
         Helpmessage='Subnetmask like 255.255.255.0')]
-    [ValidatePattern("^(254|252|248|240|224|192|128).0.0.0$|^255.(254|252|248|240|224|192|128|0).0.0$|^255.255.(254|252|248|240|224|192|128|0).0$|^255.255.255.(254|252|248|240|224|192|128|0)$")]
+    [ValidateScript({
+        if($_ -match "^(254|252|248|240|224|192|128).0.0.0$|^255.(254|252|248|240|224|192|128|0).0.0$|^255.255.(254|252|248|240|224|192|128|0).0$|^255.255.255.(254|252|248|240|224|192|128|0)$")
+        {
+            return $true
+        }
+        else 
+        {
+            throw "Enter a valid subnetmask (like 255.255.255.0)!"    
+        }
+    })]
     [String]$Mask,
 
     [Parameter(
@@ -140,7 +149,7 @@ Begin{
             Write-Verbose -Message "Create backup of the IEEE Standards Registration Authority list..."
             
             # Backup file, before download a new version     
-            if([System.IO.File]::Exists($CSV_MACVendorList_Path))
+            if(Test-Path -Path $CSV_MACVendorList_Path -PathType Leaf)
             {
                 Rename-Item -Path $CSV_MACVendorList_Path -NewName $CSV_MACVendorList_BackupPath
             }
@@ -153,7 +162,7 @@ Begin{
             Write-Verbose -Message "Remove backup of the IEEE Standards Registration Authority list..."
 
             # Remove Backup, if no error
-            if([System.IO.File]::Exists($CSV_MACVendorList_BackupPath))
+            if(Test-Path -Path $CSV_MACVendorList_BackupPath -PathType Leaf)
             {
                 Remove-Item -Path $CSV_MACVendorList_BackupPath
             }            
@@ -162,12 +171,12 @@ Begin{
             Write-Verbose -Message "Cleanup downloaded file and restore backup..."
 
             # On error: cleanup downloaded file and restore backup
-            if([System.IO.File]::Exists($CSV_MACVendorList_Path))
+            if(Test-Path -Path $CSV_MACVendorList_Path -PathType Leaf)
             {
                 Remove-Item -Path $CSV_MACVendorList_Path -Force
             }
 
-            if([System.IO.File]::Exists($CSV_MACVendorList_BackupPath))
+            if(Test-Path -Path $CSV_MACVendorList_BackupPath -PathType Leaf)
             {
                 Rename-Item -Path $CSV_MACVendorList_BackupPath -NewName $CSV_MACVendorList_Path
             }
@@ -194,7 +203,16 @@ Begin{
                 Position=0,
                 Mandatory=$true,
                 HelpMessage='Subnetmask like 255.255.255.0')]
-            [ValidatePattern("^(254|252|248|240|224|192|128).0.0.0$|^255.(254|252|248|240|224|192|128|0).0.0$|^255.255.(254|252|248|240|224|192|128|0).0$|^255.255.255.(255|254|252|248|240|224|192|128|0)$")]
+            [ValidateScript({
+                if($_ -match "^(254|252|248|240|224|192|128).0.0.0$|^255.(254|252|248|240|224|192|128|0).0.0$|^255.255.(254|252|248|240|224|192|128|0).0$|^255.255.255.(255|254|252|248|240|224|192|128|0)$")
+                {
+                    return $true
+                }
+                else 
+                {
+                    throw "Enter a valid subnetmask (like 255.255.255.0)!"    
+                }
+            })]
             [String]$Mask
         )
 
@@ -238,15 +256,14 @@ Begin{
     # Helper function to convert an IPv4-Address to Int64 and vise versa
     function Convert-IPv4Address
     {
-        [CmdletBinding(DefaultParameterSetName='String')]
+        [CmdletBinding(DefaultParameterSetName='IPv4Address')]
         param(
             [Parameter(
-                ParameterSetName='String',
+                ParameterSetName='IPv4Address',
                 Position=0,
                 Mandatory=$true,
                 HelpMessage='IPv4-Address as string like "192.168.1.1"')]
-            [ValidatePattern("^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$")]
-            [String]$IPv4Address,
+            [IPaddress]$IPv4Address,
 
             [Parameter(
                     ParameterSetName='Int64',
@@ -264,8 +281,8 @@ Begin{
             switch($PSCmdlet.ParameterSetName)
             {
                 # Convert IPv4-Address as string into Int64
-                "String" {
-                    $Octets = $IPv4Address.split(".") 
+                "IPv4Address" {
+                    $Octets = $IPv4Address.ToString().Split(".") 
                     $Int64 = [long]([long]$Octets[0]*16777216 + [long]$Octets[1]*65536 + [long]$Octets[2]*256 + [long]$Octets[3]) 
                 }
         
@@ -310,7 +327,16 @@ Begin{
                 Position=1,
                 Mandatory=$true,
                 Helpmessage='Subnetmask like 255.255.255.0')]
-            [ValidatePattern("^(254|252|248|240|224|192|128).0.0.0$|^255.(254|252|248|240|224|192|128|0).0.0$|^255.255.(254|252|248|240|224|192|128|0).0$|^255.255.255.(254|252|248|240|224|192|128|0)$")]
+            [ValidateScript({
+                if($_ -match "^(254|252|248|240|224|192|128).0.0.0$|^255.(254|252|248|240|224|192|128|0).0.0$|^255.255.(254|252|248|240|224|192|128|0).0$|^255.255.255.(254|252|248|240|224|192|128|0)$")
+                {
+                    return $true
+                }
+                else 
+                {
+                    throw "Enter a valid subnetmask (like 255.255.255.0)!"    
+                }
+            })]
             [String]$Mask
         )
 
@@ -420,12 +446,14 @@ Begin{
 }
 
 Process{
+    $CSV_MACVendorList_Available = Test-Path -Path $CSV_MACVendorList_Path -PathType Leaf
+
     # Check for vendor list update
     if($UpdateList)
     {
         UpdateListFromIEEE
     }
-    elseif(($EnableMACResolving) -and (-Not([System.IO.File]::Exists($CSV_MACVendorList_Path))))
+    elseif(($EnableMACResolving) -and ($CSV_MACVendorList_Available -eq $false))
     {
         Write-Warning -Message "No CSV-File to assign vendor with MAC-Address found! Use the parameter ""-UpdateList"" to download the latest version from IEEE.org. This warning does not affect the scanning procedure."
     }   
@@ -479,7 +507,7 @@ Process{
     }
 
     # Check if it is possible to assign vendor to MAC --> import CSV-File 
-    if(($EnableMACResolving) -and ([System.IO.File]::Exists($CSV_MACVendorList_Path)))
+    if($EnableMACResolving -and $CSV_MACVendorList_Available)
     {
         $AssignVendorToMAC = $true
 
