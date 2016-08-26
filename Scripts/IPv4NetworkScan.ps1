@@ -229,12 +229,12 @@ Begin{
                     
                     # Split into groups of 8 bits, convert to Ints, join up into a string
                     $Octets = $CIDR_Bits -split '(.{8})' -ne ''
-                    $Mask = ($Octets | ForEach-Object { [Convert]::ToInt32($_, 2) }) -join '.'
+                    $Mask = ($Octets | ForEach-Object -Process {[Convert]::ToInt32($_, 2) }) -join '.'
                 }
 
                 "Mask" {
                     # Convert the numbers into 8 bit blocks, join them all together, count the 1
-                    $Octets = $Mask.ToString().Split(".") | ForEach-Object {[Convert]::ToString($_, 2)}
+                    $Octets = $Mask.ToString().Split(".") | ForEach-Object -Process {[Convert]::ToString($_, 2)}
                     $CIDR_Bits = ($Octets -join "").TrimEnd("0")
 
                     # Count the "1" (111111111111111111111111 --> /24)                     
