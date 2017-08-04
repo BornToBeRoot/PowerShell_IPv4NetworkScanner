@@ -123,69 +123,14 @@ Param(
     [Parameter(
         Position=7,
         HelpMessage='Include inactive devices in result')]
-    [Switch]$IncludeInactive,
-
-    [Parameter(
-        Position=8,
-        HelpMessage='Update IEEE Standards Registration Authority from IEEE.org (https://standards.ieee.org/develop/regauth/oui/oui.csv)')]
-    [Switch]$UpdateList
+    [Switch]$IncludeInactive
 )
 
 Begin{
     Write-Verbose -Message "Script started at $(Get-Date)"
     
-    # IEEE ->  The Public Listing For IEEE Standards Registration Authority -> CSV-File
-    $IEEE_MACVendorList_WebUri = "http://standards.ieee.org/develop/regauth/oui/oui.csv"
+    $OUIListPath = "$PSScriptRoot\Resources\oui.txt"
 
-    # MAC-Vendor list path
-    $CSV_MACVendorList_Path = "$PSScriptRoot\Resources\IEEE_Standards_Registration_Authority.csv"
-    $CSV_MACVendorList_BackupPath = "$PSScriptRoot\Resources\IEEE_Standards_Registration_Authority.csv.bak"
-
-     # Function to update the list from IEEE (MAC-Vendor)
-    function UpdateListFromIEEE
-    {     
-        # Try to download the MAC-Vendor list from IEEE
-        try{
-            Write-Verbose -Message "Create backup of the IEEE Standards Registration Authority list..."
-            
-            # Backup file, before download a new version     
-            if(Test-Path -Path $CSV_MACVendorList_Path -PathType Leaf)
-            {
-                Rename-Item -Path $CSV_MACVendorList_Path -NewName $CSV_MACVendorList_BackupPath
-            }
-
-            Write-Verbose -Message "Updating IEEE Standards Registration Authority from IEEE.org..."
-
-            # Download csv-file from IEEE
-            Invoke-WebRequest -Uri $IEEE_MACVendorList_WebUri -OutFile $CSV_MACVendorList_Path -ErrorAction Stop
-
-            Write-Verbose -Message "Remove backup of the IEEE Standards Registration Authority list..."
-
-            # Remove Backup, if no error
-            if(Test-Path -Path $CSV_MACVendorList_BackupPath -PathType Leaf)
-            {
-                Remove-Item -Path $CSV_MACVendorList_BackupPath
-            }            
-        }
-        catch{            
-            Write-Verbose -Message "Cleanup downloaded file and restore backup..."
-
-            # On error: cleanup downloaded file and restore backup
-            if(Test-Path -Path $CSV_MACVendorList_Path -PathType Leaf)
-            {
-                Remove-Item -Path $CSV_MACVendorList_Path -Force
-            }
-
-            if(Test-Path -Path $CSV_MACVendorList_BackupPath -PathType Leaf)
-            {
-                Rename-Item -Path $CSV_MACVendorList_BackupPath -NewName $CSV_MACVendorList_Path
-            }
-
-            $_.Exception.Message                        
-        }        
-    }  
- 
-    # Helper function to convert a subnetmask
     function Convert-Subnetmask 
     {
         [CmdLetBinding(DefaultParameterSetName='CIDR')]
@@ -395,69 +340,10 @@ Begin{
         End{
 
         }
-    }  
-
-    # Assign vendor to MAC
-    function AssignVendorToMAC
-    {
-        param(
-            $Result
-        )
-
-        Begin{
-
-        }
-
-        Process {
-            $Vendor = [String]::Empty
-
-            # Check if MAC is null or empty
-            if(-not([String]::IsNullOrEmpty($Result.MAC)))
-            {
-                # Split it, so we can search the vendor (XX-XX-XX-XX-XX-XX to XX-XX-XX)
-                $MAC_VendorSearch = $Job_Result.MAC.Replace("-","").Substring(0,6)
-                
-                foreach($ListEntry in $MAC_VendorList)
-                {
-                    if($ListEntry.Assignment -eq $MAC_VendorSearch)
-                    {
-                        $Vendor = $ListEntry."Organization Name"
-                        break
-                    }
-                }                    
-            }
-
-            [pscustomobject] @{
-                IPv4Address = $Result.IPv4Address
-                Status = $Result.Status
-                Hostname = $Result.Hostname
-                MAC = $Result.MAC
-                Vendor = $Vendor  
-            	BufferSize = $Result.BufferSize
-				ResponseTime = $Result.ResponseTime
-				TTL = $Result.TTL
-            }
-        }
-
-        End {
-
-        }
-    }
+    }     
 }
 
 Process{
-    $CSV_MACVendorList_Available = Test-Path -Path $CSV_MACVendorList_Path -PathType Leaf
-
-    # Check for vendor list update
-    if($UpdateList)
-    {
-        UpdateListFromIEEE
-    }
-    elseif(($EnableMACResolving) -and ($CSV_MACVendorList_Available -eq $false))
-    {
-        Write-Warning -Message "No CSV-File to assign vendor with MAC-Address found! Use the parameter ""-UpdateList"" to download the latest version from IEEE.org. This warning does not affect the scanning procedure."
-    }   
-    
     # Calculate Subnet (Start and End IPv4-Address)
     if($PSCmdlet.ParameterSetName -eq 'CIDR' -or $PSCmdlet.ParameterSetName -eq 'Mask')
     {
@@ -490,7 +376,7 @@ Process{
     
     Write-Verbose -Message "Scanning range from $StartIPv4Address to $EndIPv4Address ($($IPsToScan + 1) IPs)"
     Write-Verbose -Message "Running with max $Threads threads"
-    Write-Verbose -Message "ICMP checks per IP is set to $Tries"
+    Write-Verbose -Message "ICMP checks per IP: $Tries"
 
     # Properties which are displayed in the output
     $PropertiesToDisplay = @()
@@ -507,18 +393,37 @@ Process{
     }
 
     # Check if it is possible to assign vendor to MAC --> import CSV-File 
-    if($EnableMACResolving -and $CSV_MACVendorList_Available)
+    if($EnableMACResolving)
     {
-        $AssignVendorToMAC = $true
+        if(Test-Path -Path $OUIListPath -PathType Leaf)        
+        {
+            $OUIHashTable = @{ }
 
-        $PropertiesToDisplay += "Vendor"
-       
-        $MAC_VendorList = Import-Csv -Path $CSV_MACVendorList_Path | Select-Object -Property "Assignment", "Organization Name"
-    }
-    else 
-    {
-        $AssignVendorToMAC = $false
-    }
+            Write-Verbose -Message "Read oui.txt and fill hash table..."
+
+            foreach($Line in Get-Content -Path $OUIListPath)
+            {
+                if(-not([String]::IsNullOrEmpty($Line)))
+                {
+                    try{
+                        $HashTableData = $Line.Split('|')
+                        $OUIHashTable.Add($HashTableData[0], $HashTableData[1])
+                    }
+                    catch [System.ArgumentException] { } # Catch if mac is already added to hash table
+                }
+            }
+
+            $AssignVendorToMAC = $true
+
+            $PropertiesToDisplay += "Vendor"
+        }
+        else 
+        {
+            $AssignVendorToMAC = $false
+
+            Write-Warning -Message "No OUI-File to assign vendor with MAC-Address found! Execute the script ""Create-OUIListFromWeb.ps1"" to download the latest version. This warning does not affect the scanning procedure."
+        }
+    }  
     
     if($ExtendedInformations)
     {
@@ -591,17 +496,6 @@ Process{
 					$MAC = [Regex]::Matches($Line,"([0-9A-F][0-9A-F]-){5}([0-9A-F][0-9A-F])").Value
                 }
             }
-
-            # If the first function is not able to get the MAC-Address            
-            if([String]::IsNullOrEmpty($MAC))
-            {
-                try{              
-                    $Nbtstat_Result = nbtstat -A $IPv4Address | Select-String -Pattern "MAC"
-                    $MAC = [Regex]::Matches($Nbtstat_Result, "([0-9A-F][0-9A-F]-){5}([0-9A-F][0-9A-F])").Value
-                }  
-                catch{ } # No MAC   
-            }   
-
         }
 
 		# +++ Get extended informations +++
@@ -619,8 +513,7 @@ Process{
 			catch{ } # Failed to get extended informations
 		}	
 	
-        # +++ Result +++
-        
+        # +++ Result +++        
         if(($Status -eq "Up") -or ($IncludeInactive))
         {
             [pscustomobject] @{
@@ -646,9 +539,9 @@ Process{
     $RunspacePool.Open()
     [System.Collections.ArrayList]$Jobs = @()
 
-    Write-Verbose -Message "Setting up Jobs..."
+    Write-Verbose -Message "Setting up jobs..."
 
-    # Set up Jobs for each IP...
+    # Set up jobs for each IP...
     for ($i = $StartIPv4Address_Int64; $i -le $EndIPv4Address_Int64; $i++) 
     { 
         # Convert IP back from Int64
@@ -701,9 +594,9 @@ Process{
         # If no jobs finished yet, wait 500 ms and try again
         if($null -eq $Jobs_ToProcess)
         {
-            Write-Verbose -Message "No jobs completed, wait 500ms..."
+            Write-Verbose -Message "No jobs completed, wait 250ms..."
 
-            Start-Sleep -Milliseconds 500
+            Start-Sleep -Milliseconds 250
             continue
         }
         
@@ -736,8 +629,28 @@ Process{
             if($Job_Result.Status)
             {        
                 if($AssignVendorToMAC)
-                {                   
-                    AssignVendorToMAC -Result $Job_Result | Select-Object -Property $PropertiesToDisplay
+                {           
+                    $Vendor = [String]::Empty
+
+                    # Check if MAC is null or empty
+                    if(-not([String]::IsNullOrEmpty($Job_Result.MAC)))
+                    {
+                        # Split it, so we can search the vendor (XX-XX-XX-XX-XX-XX to XXXXXX)
+                        $MAC_VendorSearch = $Job_Result.MAC.Replace("-","").Substring(0,6)
+                                
+                        $Vendor = $OUIHashTable.Get_Item($MAC_VendorSearch)
+                    }
+
+                    [pscustomobject] @{
+                        IPv4Address = $Job_Result.IPv4Address
+                        Status = $Job_Result.Status
+                        Hostname = $Job_Result.Hostname
+                        MAC = $Job_Result.MAC
+                        Vendor = $Vendor  
+                        BufferSize = $Job_Result.BufferSize
+                        ResponseTime = $Job_Result.ResponseTime
+                        TTL = $ResuJob_Resultlt.TTL
+                    } | Select-Object -Property $PropertiesToDisplay
                 }
                 else 
                 {
