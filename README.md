@@ -1,4 +1,4 @@
-# PowerShell - IPv4 Network Scanner
+# PowerShell script | IPv4 network scanner
 
 Powerful asynchronus IPv4 network scanner for PowerShell.
 
