@@ -1,12 +1,12 @@
 # PowerShell - IPv4 Network Scanner
 
-Powerful asynchronus IPv4 Network Scanner for PowerShell.
+Powerful asynchronus IPv4 network scanner for PowerShell.
 
 ## Description
 
-This powerful asynchronus IPv4 Network Scanner for PowerShell allows you to scan every IPv4-Range you want (172.16.1.47 to 172.16.2.5 would work). But there is also the possibility to scan an entire subnet based on an IPv4-Address withing the subnet and a the subnetmask/CIDR.
+This powerful asynchronus IPv4 network scanner for PowerShell allows you to scan every IPv4 range you want (172.16.1.47 to 172.16.2.5 would work). But there is also the possibility to scan an entire subnet based on an IPv4 address withing the subnet and a the subnetmask/CIDR.
 
-The default result will contain the the IPv4-Address, Status (Up or Down) and the Hostname. Other values can be displayed via parameter (Try Get-Help for more details).
+The default result will contain the the IPv4 address, status (Up or Down) and the hostname. Other values can be displayed via parameter (Try Get-Help for more details).
 
 ![Screenshot](Documentation/Images/IPv4NetworkScan.png?raw=true "IPv4NetworkScan")
 
