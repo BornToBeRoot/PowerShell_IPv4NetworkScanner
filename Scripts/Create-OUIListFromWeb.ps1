@@ -1,5 +1,5 @@
 #$LatestOUI = Get-Content -Path "$PSScriptRoot\oui_from_web.txt"
-$LatestOUIs = (Invoke-WebRequest -Uri "http://linuxnet.ca/ieee/oui.txt").Content
+$LatestOUIs = (Invoke-WebRequest -Uri "https://standards-oui.ieee.org/oui/oui.txt").Content
 
 $Output = ""
 
