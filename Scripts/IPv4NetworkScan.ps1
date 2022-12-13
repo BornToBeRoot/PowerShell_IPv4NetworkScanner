@@ -42,122 +42,117 @@
     https://github.com/BornToBeRoot/PowerShell_IPv4NetworkScanner/blob/master/README.md
 #>
 
-[CmdletBinding(DefaultParameterSetName='CIDR')]
+[CmdletBinding(DefaultParameterSetName = 'CIDR')]
 Param(
     [Parameter(
-        ParameterSetName='Range',
-        Position=0,
-        Mandatory=$true,
-        HelpMessage='Start IPv4-Address like 192.168.1.10')]
+        ParameterSetName = 'Range',
+        Position = 0,
+        Mandatory = $true,
+        HelpMessage = 'Start IPv4-Address like 192.168.1.10')]
     [IPAddress]$StartIPv4Address,
 
     [Parameter(
-        ParameterSetName='Range',
-        Position=1,
-        Mandatory=$true,
-        HelpMessage='End IPv4-Address like 192.168.1.100')]
+        ParameterSetName = 'Range',
+        Position = 1,
+        Mandatory = $true,
+        HelpMessage = 'End IPv4-Address like 192.168.1.100')]
     [IPAddress]$EndIPv4Address,
     
     [Parameter(
-        ParameterSetName='CIDR',
-        Position=0,
-        Mandatory=$true,
-        HelpMessage='IPv4-Address which is in the subnet')]
+        ParameterSetName = 'CIDR',
+        Position = 0,
+        Mandatory = $true,
+        HelpMessage = 'IPv4-Address which is in the subnet')]
     [Parameter(
-        ParameterSetName='Mask',
-        Position=0,
-        Mandatory=$true,
-        HelpMessage='IPv4-Address which is in the subnet')]
+        ParameterSetName = 'Mask',
+        Position = 0,
+        Mandatory = $true,
+        HelpMessage = 'IPv4-Address which is in the subnet')]
     [IPAddress]$IPv4Address,
 
     [Parameter(
-        ParameterSetName='CIDR',        
-        Position=1,
-        Mandatory=$true,
-        HelpMessage='CIDR like /24 without "/"')]
-    [ValidateRange(0,31)]
+        ParameterSetName = 'CIDR',        
+        Position = 1,
+        Mandatory = $true,
+        HelpMessage = 'CIDR like /24 without "/"')]
+    [ValidateRange(0, 31)]
     [Int32]$CIDR,
    
     [Parameter(
-        ParameterSetName='Mask',
-        Position=1,
-        Mandatory=$true,
-        Helpmessage='Subnetmask like 255.255.255.0')]
+        ParameterSetName = 'Mask',
+        Position = 1,
+        Mandatory = $true,
+        Helpmessage = 'Subnetmask like 255.255.255.0')]
     [ValidateScript({
-        if($_ -match "^(254|252|248|240|224|192|128).0.0.0$|^255.(254|252|248|240|224|192|128|0).0.0$|^255.255.(254|252|248|240|224|192|128|0).0$|^255.255.255.(254|252|248|240|224|192|128|0)$")
-        {
-            return $true
-        }
-        else 
-        {
-            throw "Enter a valid subnetmask (like 255.255.255.0)!"    
-        }
-    })]
+            if ($_ -match "^(254|252|248|240|224|192|128).0.0.0$|^255.(254|252|248|240|224|192|128|0).0.0$|^255.255.(254|252|248|240|224|192|128|0).0$|^255.255.255.(254|252|248|240|224|192|128|0)$") {
+                return $true
+            }
+            else {
+                throw "Enter a valid subnetmask (like 255.255.255.0)!"    
+            }
+        })]
     [String]$Mask,
 
     [Parameter(
-        Position=2,
-        HelpMessage='Maxmium number of ICMP checks for each IPv4-Address (Default=2)')]
-    [Int32]$Tries=2,
+        Position = 2,
+        HelpMessage = 'Maxmium number of ICMP checks for each IPv4-Address (Default=2)')]
+    [Int32]$Tries = 2,
 
-	[Parameter(
-		Position=3,
-		HelpMessage='Maximum number of threads at the same time (Default=256)')]
-	[Int32]$Threads=256,
+    [Parameter(
+        Position = 3,
+        HelpMessage = 'Maximum number of threads at the same time (Default=256)')]
+    [Int32]$Threads = 256,
 	
     [Parameter(
-        Position=4,
-        HelpMessage='Resolve DNS for each IP (Default=Enabled)')]
+        Position = 4,
+        HelpMessage = 'Resolve DNS for each IP (Default=Enabled)')]
     [Switch]$DisableDNSResolving,
 
     [Parameter(
-        Position=5,
-        HelpMessage='Resolve MAC-Address for each IP (Default=Disabled)')]
+        Position = 5,
+        HelpMessage = 'Resolve MAC-Address for each IP (Default=Disabled)')]
     [Switch]$EnableMACResolving,
 
     [Parameter(
-        Position=6,
-        HelpMessage='Get extendend informations like BufferSize, ResponseTime and TTL (Default=Disabled)')]
+        Position = 6,
+        HelpMessage = 'Get extendend informations like BufferSize, ResponseTime and TTL (Default=Disabled)')]
     [Switch]$ExtendedInformations,
 
     [Parameter(
-        Position=7,
-        HelpMessage='Include inactive devices in result')]
+        Position = 7,
+        HelpMessage = 'Include inactive devices in result')]
     [Switch]$IncludeInactive
 )
 
-Begin{
+Begin {
     Write-Verbose -Message "Script started at $(Get-Date)"
     
     $OUIListPath = "$PSScriptRoot\Resources\oui.txt"
 
-    function Convert-Subnetmask 
-    {
-        [CmdLetBinding(DefaultParameterSetName='CIDR')]
+    function Convert-Subnetmask {
+        [CmdLetBinding(DefaultParameterSetName = 'CIDR')]
         param( 
             [Parameter( 
-                ParameterSetName='CIDR',       
-                Position=0,
-                Mandatory=$true,
-                HelpMessage='CIDR like /24 without "/"')]
-            [ValidateRange(0,32)]
+                ParameterSetName = 'CIDR',       
+                Position = 0,
+                Mandatory = $true,
+                HelpMessage = 'CIDR like /24 without "/"')]
+            [ValidateRange(0, 32)]
             [Int32]$CIDR,
 
             [Parameter(
-                ParameterSetName='Mask',
-                Position=0,
-                Mandatory=$true,
-                HelpMessage='Subnetmask like 255.255.255.0')]
+                ParameterSetName = 'Mask',
+                Position = 0,
+                Mandatory = $true,
+                HelpMessage = 'Subnetmask like 255.255.255.0')]
             [ValidateScript({
-                if($_ -match "^(254|252|248|240|224|192|128).0.0.0$|^255.(254|252|248|240|224|192|128|0).0.0$|^255.255.(254|252|248|240|224|192|128|0).0$|^255.255.255.(255|254|252|248|240|224|192|128|0)$")
-                {
-                    return $true
-                }
-                else 
-                {
-                    throw "Enter a valid subnetmask (like 255.255.255.0)!"    
-                }
-            })]
+                    if ($_ -match "^(254|252|248|240|224|192|128).0.0.0$|^255.(254|252|248|240|224|192|128|0).0.0$|^255.255.(254|252|248|240|224|192|128|0).0$|^255.255.255.(255|254|252|248|240|224|192|128|0)$") {
+                        return $true
+                    }
+                    else {
+                        throw "Enter a valid subnetmask (like 255.255.255.0)!"    
+                    }
+                })]
             [String]$Mask
         )
 
@@ -166,20 +161,19 @@ Begin{
         }
 
         Process {
-            switch($PSCmdlet.ParameterSetName)
-            {
+            switch ($PSCmdlet.ParameterSetName) {
                 "CIDR" {                          
                     # Make a string of bits (24 to 11111111111111111111111100000000)
                     $CIDR_Bits = ('1' * $CIDR).PadRight(32, "0")
                     
                     # Split into groups of 8 bits, convert to Ints, join up into a string
                     $Octets = $CIDR_Bits -split '(.{8})' -ne ''
-                    $Mask = ($Octets | ForEach-Object -Process {[Convert]::ToInt32($_, 2) }) -join '.'
+                    $Mask = ($Octets | ForEach-Object -Process { [Convert]::ToInt32($_, 2) }) -join '.'
                 }
 
                 "Mask" {
                     # Convert the numbers into 8 bit blocks, join them all together, count the 1
-                    $Octets = $Mask.ToString().Split(".") | ForEach-Object -Process {[Convert]::ToString($_, 2)}
+                    $Octets = $Mask.ToString().Split(".") | ForEach-Object -Process { [Convert]::ToString($_, 2) }
                     $CIDR_Bits = ($Octets -join "").TrimEnd("0")
 
                     # Count the "1" (111111111111111111111111 --> /24)                     
@@ -199,22 +193,21 @@ Begin{
     }
 
     # Helper function to convert an IPv4-Address to Int64 and vise versa
-    function Convert-IPv4Address
-    {
-        [CmdletBinding(DefaultParameterSetName='IPv4Address')]
+    function Convert-IPv4Address {
+        [CmdletBinding(DefaultParameterSetName = 'IPv4Address')]
         param(
             [Parameter(
-                ParameterSetName='IPv4Address',
-                Position=0,
-                Mandatory=$true,
-                HelpMessage='IPv4-Address as string like "192.168.1.1"')]
+                ParameterSetName = 'IPv4Address',
+                Position = 0,
+                Mandatory = $true,
+                HelpMessage = 'IPv4-Address as string like "192.168.1.1"')]
             [IPaddress]$IPv4Address,
 
             [Parameter(
-                    ParameterSetName='Int64',
-                    Position=0,
-                    Mandatory=$true,
-                    HelpMessage='IPv4-Address as Int64 like 2886755428')]
+                ParameterSetName = 'Int64',
+                Position = 0,
+                Mandatory = $true,
+                HelpMessage = 'IPv4-Address as Int64 like 2886755428')]
             [long]$Int64
         ) 
 
@@ -223,23 +216,22 @@ Begin{
         }
 
         Process {
-            switch($PSCmdlet.ParameterSetName)
-            {
+            switch ($PSCmdlet.ParameterSetName) {
                 # Convert IPv4-Address as string into Int64
                 "IPv4Address" {
                     $Octets = $IPv4Address.ToString().Split(".") 
-                    $Int64 = [long]([long]$Octets[0]*16777216 + [long]$Octets[1]*65536 + [long]$Octets[2]*256 + [long]$Octets[3]) 
+                    $Int64 = [long]([long]$Octets[0] * 16777216 + [long]$Octets[1] * 65536 + [long]$Octets[2] * 256 + [long]$Octets[3]) 
                 }
         
                 # Convert IPv4-Address as Int64 into string 
                 "Int64" {            
-                    $IPv4Address = (([System.Math]::Truncate($Int64/16777216)).ToString() + "." + ([System.Math]::Truncate(($Int64%16777216)/65536)).ToString() + "." + ([System.Math]::Truncate(($Int64%65536)/256)).ToString() + "." + ([System.Math]::Truncate($Int64%256)).ToString())
+                    $IPv4Address = (([System.Math]::Truncate($Int64 / 16777216)).ToString() + "." + ([System.Math]::Truncate(($Int64 % 16777216) / 65536)).ToString() + "." + ([System.Math]::Truncate(($Int64 % 65536) / 256)).ToString() + "." + ([System.Math]::Truncate($Int64 % 256)).ToString())
                 }      
             }
 
             [pscustomobject] @{   
                 IPv4Address = $IPv4Address
-                Int64 = $Int64
+                Int64       = $Int64
             }
         }
 
@@ -249,50 +241,46 @@ Begin{
     }
 
     # Helper function to create a new Subnet
-    function Get-IPv4Subnet
-    {
-        [CmdletBinding(DefaultParameterSetName='CIDR')]
+    function Get-IPv4Subnet {
+        [CmdletBinding(DefaultParameterSetName = 'CIDR')]
         param(
             [Parameter(
-                Position=0,
-                Mandatory=$true,
-                HelpMessage='IPv4-Address which is in the subnet')]
+                Position = 0,
+                Mandatory = $true,
+                HelpMessage = 'IPv4-Address which is in the subnet')]
             [IPAddress]$IPv4Address,
 
             [Parameter(
-                ParameterSetName='CIDR',
-                Position=1,
-                Mandatory=$true,
-                HelpMessage='CIDR like /24 without "/"')]
-            [ValidateRange(0,31)]
+                ParameterSetName = 'CIDR',
+                Position = 1,
+                Mandatory = $true,
+                HelpMessage = 'CIDR like /24 without "/"')]
+            [ValidateRange(0, 31)]
             [Int32]$CIDR,
 
             [Parameter(
-                ParameterSetName='Mask',
-                Position=1,
-                Mandatory=$true,
-                Helpmessage='Subnetmask like 255.255.255.0')]
+                ParameterSetName = 'Mask',
+                Position = 1,
+                Mandatory = $true,
+                Helpmessage = 'Subnetmask like 255.255.255.0')]
             [ValidateScript({
-                if($_ -match "^(254|252|248|240|224|192|128).0.0.0$|^255.(254|252|248|240|224|192|128|0).0.0$|^255.255.(254|252|248|240|224|192|128|0).0$|^255.255.255.(254|252|248|240|224|192|128|0)$")
-                {
-                    return $true
-                }
-                else 
-                {
-                    throw "Enter a valid subnetmask (like 255.255.255.0)!"    
-                }
-            })]
+                    if ($_ -match "^(254|252|248|240|224|192|128).0.0.0$|^255.(254|252|248|240|224|192|128|0).0.0$|^255.255.(254|252|248|240|224|192|128|0).0$|^255.255.255.(254|252|248|240|224|192|128|0)$") {
+                        return $true
+                    }
+                    else {
+                        throw "Enter a valid subnetmask (like 255.255.255.0)!"    
+                    }
+                })]
             [String]$Mask
         )
 
-        Begin{
+        Begin {
         
         }
 
-        Process{
+        Process {
             # Convert Mask or CIDR - because we need both in the code below
-            switch($PSCmdlet.ParameterSetName)
-            {
+            switch ($PSCmdlet.ParameterSetName) {
                 "CIDR" {                          
                     $Mask = (Convert-Subnetmask -CIDR $CIDR).Mask            
                 }
@@ -302,7 +290,7 @@ Begin{
             }
             
             # Get CIDR Address by parsing it into an IP-Address
-            $CIDRAddress = [System.Net.IPAddress]::Parse([System.Convert]::ToUInt64(("1"* $CIDR).PadRight(32, "0"), 2))
+            $CIDRAddress = [System.Net.IPAddress]::Parse([System.Convert]::ToUInt64(("1" * $CIDR).PadRight(32, "0"), 2))
         
             # Binary AND ... this is how subnets work.
             $NetworkID_bAND = $IPv4Address.Address -band $CIDRAddress.Address
@@ -314,7 +302,7 @@ Begin{
             $HostBits = ('1' * (32 - $CIDR)).PadLeft(32, "0")
             
             # Convert Bits to Int64
-            $AvailableIPs = [Convert]::ToInt64($HostBits,2)
+            $AvailableIPs = [Convert]::ToInt64($HostBits, 2)
 
             # Convert Network Address to Int64
             $NetworkID_Int64 = (Convert-IPv4Address -IPv4Address $NetworkID.ToString()).Int64
@@ -331,25 +319,23 @@ Begin{
             # Build custom PSObject
             [pscustomobject] @{
                 NetworkID = $NetworkID
-            	Broadcast = $Broadcast
-            	IPs = $AvailableIPs
-           	    Hosts = $Hosts
+                Broadcast = $Broadcast
+                IPs       = $AvailableIPs
+           	    Hosts     = $Hosts
             }
         }
 
-        End{
+        End {
 
         }
     }     
 }
 
-Process{
+Process {
     # Calculate Subnet (Start and End IPv4-Address)
-    if($PSCmdlet.ParameterSetName -eq 'CIDR' -or $PSCmdlet.ParameterSetName -eq 'Mask')
-    {
+    if ($PSCmdlet.ParameterSetName -eq 'CIDR' -or $PSCmdlet.ParameterSetName -eq 'Mask') {
         # Convert Subnetmask
-        if($PSCmdlet.ParameterSetName -eq 'Mask')
-        {
+        if ($PSCmdlet.ParameterSetName -eq 'Mask') {
             $CIDR = (Convert-Subnetmask -Mask $Mask).CIDR     
         }
 
@@ -366,8 +352,7 @@ Process{
     $EndIPv4Address_Int64 = (Convert-IPv4Address -IPv4Address $EndIPv4Address.ToString()).Int64
 
     # Check if range is valid
-    if($StartIPv4Address_Int64 -gt $EndIPv4Address_Int64)
-    {
+    if ($StartIPv4Address_Int64 -gt $EndIPv4Address_Int64) {
         Write-Error -Message "Invalid IP-Range... Check your input!" -Category InvalidArgument -ErrorAction Stop
     }
 
@@ -382,30 +367,24 @@ Process{
     $PropertiesToDisplay = @()
     $PropertiesToDisplay += "IPv4Address", "Status"
 
-    if($DisableDNSResolving -eq $false)
-    {
+    if ($DisableDNSResolving -eq $false) {
         $PropertiesToDisplay += "Hostname"
     }
 
-    if($EnableMACResolving)
-    {
+    if ($EnableMACResolving) {
         $PropertiesToDisplay += "MAC"
     }
 
     # Check if it is possible to assign vendor to MAC --> import CSV-File 
-    if($EnableMACResolving)
-    {
-        if(Test-Path -Path $OUIListPath -PathType Leaf)        
-        {
+    if ($EnableMACResolving) {
+        if (Test-Path -Path $OUIListPath -PathType Leaf) {
             $OUIHashTable = @{ }
 
             Write-Verbose -Message "Read oui.txt and fill hash table..."
 
-            foreach($Line in Get-Content -Path $OUIListPath)
-            {
-                if(-not([String]::IsNullOrEmpty($Line)))
-                {
-                    try{
+            foreach ($Line in Get-Content -Path $OUIListPath) {
+                if (-not([String]::IsNullOrEmpty($Line))) {
+                    try {
                         $HashTableData = $Line.Split('|')
                         $OUIHashTable.Add($HashTableData[0], $HashTableData[1])
                     }
@@ -417,117 +396,104 @@ Process{
 
             $PropertiesToDisplay += "Vendor"
         }
-        else 
-        {
+        else {
             $AssignVendorToMAC = $false
 
             Write-Warning -Message "No OUI-File to assign vendor with MAC-Address found! Execute the script ""Create-OUIListFromWeb.ps1"" to download the latest version. This warning does not affect the scanning procedure."
         }
     }  
     
-    if($ExtendedInformations)
-    {
+    if ($ExtendedInformations) {
         $PropertiesToDisplay += "BufferSize", "ResponseTime", "TTL"
     }
 
     # Scriptblock --> will run in runspaces (threads)...
     [System.Management.Automation.ScriptBlock]$ScriptBlock = {
         Param(
-			$IPv4Address,
-			$Tries,
-			$DisableDNSResolving,
-			$EnableMACResolving,
-			$ExtendedInformations,
+            $IPv4Address,
+            $Tries,
+            $DisableDNSResolving,
+            $EnableMACResolving,
+            $ExtendedInformations,
             $IncludeInactive
-		)
+        )
  
         # +++ Send ICMP requests +++
         $Status = [String]::Empty
 
-		for($i = 0; $i -lt $Tries; i++)
-		{
-			try{
-				$PingObj = New-Object System.Net.NetworkInformation.Ping
+        for ($i = 0; $i -lt $Tries; i++) {
+            try {
+                $PingObj = New-Object System.Net.NetworkInformation.Ping
 				
-				$Timeout = 1000
-				$Buffer = New-Object Byte[] 32
+                $Timeout = 1000
+                $Buffer = New-Object Byte[] 32
 				
-				$PingResult = $PingObj.Send($IPv4Address, $Timeout, $Buffer)
+                $PingResult = $PingObj.Send($IPv4Address, $Timeout, $Buffer)
 
-				if($PingResult.Status -eq "Success")
-				{
-					$Status = "Up"
-					break # Exit loop, if host is reachable
-				}
-				else
-				{
-					$Status = "Down"
-				}
-			}
-			catch
-			{
-				$Status = "Down"
-				break # Exit loop, if there is an error
-			}
-		}
+                if ($PingResult.Status -eq "Success") {
+                    $Status = "Up"
+                    break # Exit loop, if host is reachable
+                }
+                else {
+                    $Status = "Down"
+                }
+            }
+            catch {
+                $Status = "Down"
+                break # Exit loop, if there is an error
+            }
+        }
              
-		# +++ Resolve DNS +++
-		$Hostname = [String]::Empty     
+        # +++ Resolve DNS +++
+        $Hostname = [String]::Empty     
 
-        if((-not($DisableDNSResolving)) -and ($Status -eq "Up" -or $IncludeInactive))
-        {   	
-		    try{ 
+        if ((-not($DisableDNSResolving)) -and ($Status -eq "Up" -or $IncludeInactive)) {   	
+            try { 
                 $Hostname = ([System.Net.Dns]::GetHostEntry($IPv4Address).HostName)
             } 
             catch { } # No DNS      
-     	}
+        }
      
         # +++ Get MAC-Address +++
-		$MAC = [String]::Empty 
+        $MAC = [String]::Empty 
 
-        if(($EnableMACResolving) -and (($Status -eq "Up") -or ($IncludeInactive)))
-        {
-            $Arp_Result = (arp -a ).ToUpper()
-			           
-			foreach($Line in $Arp_Result)
-            {
-                if($Line.TrimStart().StartsWith($IPv4Address))
-                {
-					$MAC = [Regex]::Matches($Line,"([0-9A-F][0-9A-F]-){5}([0-9A-F][0-9A-F])").Value
+        if (($EnableMACResolving) -and (($Status -eq "Up") -or ($IncludeInactive))) {
+            $Arp_Result = (arp -a).ToUpper().Trim()
+
+            foreach ($Line in $Arp_Result) {                
+                if ($Line.Split(" ")[0] -eq $IPv4Address) {                    
+                    $MAC = [Regex]::Matches($Line, "([0-9A-F][0-9A-F]-){5}([0-9A-F][0-9A-F])").Value
                 }
             }
         }
 
-		# +++ Get extended informations +++
-		$BufferSize = [String]::Empty 
-		$ResponseTime = [String]::Empty 
+        # +++ Get extended informations +++
+        $BufferSize = [String]::Empty 
+        $ResponseTime = [String]::Empty 
         $TTL = $null
 
-        if($ExtendedInformations -and ($Status -eq "Up"))
-		{
-			try{
-				$BufferSize =  $PingResult.Buffer.Length
-				$ResponseTime = $PingResult.RoundtripTime
-				$TTL = $PingResult.Options.Ttl
-			}
-			catch{ } # Failed to get extended informations
-		}	
+        if ($ExtendedInformations -and ($Status -eq "Up")) {
+            try {
+                $BufferSize = $PingResult.Buffer.Length
+                $ResponseTime = $PingResult.RoundtripTime
+                $TTL = $PingResult.Options.Ttl
+            }
+            catch { } # Failed to get extended informations
+        }	
 	
         # +++ Result +++        
-        if(($Status -eq "Up") -or ($IncludeInactive))
-        {
+        if (($Status -eq "Up") -or ($IncludeInactive)) {
             [pscustomobject] @{
-                IPv4Address = $IPv4Address
-                Status = $Status
-                Hostname = $Hostname
-                MAC = $MAC   
-                BufferSize = $BufferSize
-			    ResponseTime = $ResponseTime
-			    TTL = $TTL
+                IPv4Address  = $IPv4Address
+                Status       = $Status
+                Hostname     = $Hostname
+                MAC          = $MAC   
+                BufferSize   = $BufferSize
+                ResponseTime = $ResponseTime
+                TTL          = $TTL
             }
         }
-        else
-        {
+        else {
             $null
         }
     } 
@@ -542,38 +508,37 @@ Process{
     Write-Verbose -Message "Setting up jobs..."
 
     # Set up jobs for each IP...
-    for ($i = $StartIPv4Address_Int64; $i -le $EndIPv4Address_Int64; $i++) 
-    { 
+    for ($i = $StartIPv4Address_Int64; $i -le $EndIPv4Address_Int64; $i++) { 
         # Convert IP back from Int64
         $IPv4Address = (Convert-IPv4Address -Int64 $i).IPv4Address                
 
-		# Create hashtable to pass parameters
-		$ScriptParams = @{
-			IPv4Address = $IPv4Address
-			Tries = $Tries
-			DisableDNSResolving = $DisableDNSResolving
-			EnableMACResolving = $EnableMACResolving
-			ExtendedInformations = $ExtendedInformations
-            IncludeInactive = $IncludeInactive
-		}       
+        # Create hashtable to pass parameters
+        $ScriptParams = @{
+            IPv4Address          = $IPv4Address
+            Tries                = $Tries
+            DisableDNSResolving  = $DisableDNSResolving
+            EnableMACResolving   = $EnableMACResolving
+            ExtendedInformations = $ExtendedInformations
+            IncludeInactive      = $IncludeInactive
+        }       
 
-		# Catch when trying to divide through zero
+        # Catch when trying to divide through zero
         try {
-			$Progress_Percent = (($i - $StartIPv4Address_Int64) / $IPsToScan) * 100 
-		} 
-		catch { 
-			$Progress_Percent = 100 
-		}
+            $Progress_Percent = (($i - $StartIPv4Address_Int64) / $IPsToScan) * 100 
+        } 
+        catch { 
+            $Progress_Percent = 100 
+        }
 
         Write-Progress -Activity "Setting up jobs..." -Id 1 -Status "Current IP-Address: $IPv4Address" -PercentComplete $Progress_Percent
 						 
-		# Create new job
+        # Create new job
         $Job = [System.Management.Automation.PowerShell]::Create().AddScript($ScriptBlock).AddParameters($ScriptParams)
         $Job.RunspacePool = $RunspacePool
         
         $JobObj = [pscustomobject] @{
             RunNum = $i - $StartIPv4Address_Int64
-            Pipe = $Job
+            Pipe   = $Job
             Result = $Job.BeginInvoke()
         }
 
@@ -589,11 +554,10 @@ Process{
     # Process results, while waiting for other jobs
     Do {
         # Get all jobs, which are completed
-        $Jobs_ToProcess = $Jobs | Where-Object -FilterScript {$_.Result.IsCompleted}
+        $Jobs_ToProcess = $Jobs | Where-Object -FilterScript { $_.Result.IsCompleted }
   
         # If no jobs finished yet, wait 500 ms and try again
-        if($null -eq $Jobs_ToProcess)
-        {
+        if ($null -eq $Jobs_ToProcess) {
             Write-Verbose -Message "No jobs completed, wait 250ms..."
 
             Start-Sleep -Milliseconds 250
@@ -601,7 +565,7 @@ Process{
         }
         
         # Get jobs, which are not complete yet
-        $Jobs_Remaining = ($Jobs | Where-Object -FilterScript {$_.Result.IsCompleted -eq $false}).Count
+        $Jobs_Remaining = ($Jobs | Where-Object -FilterScript { $_.Result.IsCompleted -eq $false }).Count
 
         # Catch when trying to divide through zero
         try {            
@@ -616,8 +580,7 @@ Process{
         Write-Verbose -Message "Processing $(if($null -eq $Jobs_ToProcess.Count){"1"}else{$Jobs_ToProcess.Count}) job(s)..."
 
         # Processing completed jobs
-        foreach($Job in $Jobs_ToProcess)
-        {       
+        foreach ($Job in $Jobs_ToProcess) {       
             # Get the result...     
             $Job_Result = $Job.Pipe.EndInvoke($Job.Result)
             $Job.Pipe.Dispose()
@@ -626,34 +589,30 @@ Process{
             $Jobs.Remove($Job)
            
             # Check if result contains status
-            if($Job_Result.Status)
-            {        
-                if($AssignVendorToMAC)
-                {           
+            if ($Job_Result.Status) {        
+                if ($AssignVendorToMAC) {           
                     $Vendor = [String]::Empty
 
                     # Check if MAC is null or empty
-                    if(-not([String]::IsNullOrEmpty($Job_Result.MAC)))
-                    {
+                    if (-not([String]::IsNullOrEmpty($Job_Result.MAC))) {
                         # Split it, so we can search the vendor (XX-XX-XX-XX-XX-XX to XXXXXX)
-                        $MAC_VendorSearch = $Job_Result.MAC.Replace("-","").Substring(0,6)
+                        $MAC_VendorSearch = $Job_Result.MAC.Replace("-", "").Substring(0, 6)
                                 
                         $Vendor = $OUIHashTable.Get_Item($MAC_VendorSearch)
                     }
 
                     [pscustomobject] @{
-                        IPv4Address = $Job_Result.IPv4Address
-                        Status = $Job_Result.Status
-                        Hostname = $Job_Result.Hostname
-                        MAC = $Job_Result.MAC
-                        Vendor = $Vendor  
-                        BufferSize = $Job_Result.BufferSize
+                        IPv4Address  = $Job_Result.IPv4Address
+                        Status       = $Job_Result.Status
+                        Hostname     = $Job_Result.Hostname
+                        MAC          = $Job_Result.MAC
+                        Vendor       = $Vendor  
+                        BufferSize   = $Job_Result.BufferSize
                         ResponseTime = $Job_Result.ResponseTime
-                        TTL = $ResuJob_Resultlt.TTL
+                        TTL          = $ResuJob_Resultlt.TTL
                     } | Select-Object -Property $PropertiesToDisplay
                 }
-                else 
-                {
+                else {
                     $Job_Result | Select-Object -Property $PropertiesToDisplay
                 }                            
             }
@@ -670,6 +629,6 @@ Process{
     Write-Verbose -Message "Script finished at $(Get-Date)"
 }
 
-End{
+End {
     
 }
